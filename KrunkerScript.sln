@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31515.178
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KrunkerScript", "KrunkerScript\KrunkerScript.csproj", "{577373C9-9DDE-4E6F-8A0C-3DA359C7CA84}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KrunkScript", "KrunkerScript\KrunkScript.csproj", "{577373C9-9DDE-4E6F-8A0C-3DA359C7CA84}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KrunkScriptParser", "KrunkScriptParser\KrunkScriptParser.csproj", "{66C14C93-552C-4D33-B23C-0BC0FE4E951B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{577373C9-9DDE-4E6F-8A0C-3DA359C7CA84}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{577373C9-9DDE-4E6F-8A0C-3DA359C7CA84}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{577373C9-9DDE-4E6F-8A0C-3DA359C7CA84}.Release|Any CPU.Build.0 = Release|Any CPU
+		{66C14C93-552C-4D33-B23C-0BC0FE4E951B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{66C14C93-552C-4D33-B23C-0BC0FE4E951B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{66C14C93-552C-4D33-B23C-0BC0FE4E951B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{66C14C93-552C-4D33-B23C-0BC0FE4E951B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

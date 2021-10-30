@@ -1,0 +1,307 @@
+# Client Script runs only on the client
+# KrunkScript Copyright (C) Yendis Entertainment Pty Ltd
+# 
+
+#num[] b = num[0];
+
+#num c = b[test.a];
+
+obj consoleMenu_config = {
+	menuKey: "`",           # Key used to open menu
+	ui: {
+		size: { 
+			width: 40,
+			height: 20,
+		},
+		location: {
+			x: 30,
+			y: 1,
+		},
+		borderSize: 2,
+		borderColor: "#006600",
+		color: "#000000",
+		opacity: 1, 				# Transparency doesn't work so well with current method of border
+		
+		textbox: {
+			textBoxHeight: 15,
+			textBoxColor: "#333333",
+			textColor: "#ffffff",
+			fontSize: 15,
+			sideMargins: 10
+		},
+		textHistory: {
+			sendColor: "#6666ff",
+			receiveColor: "#00ff00",
+			errorColor: "#ff0000",
+			fontSize: 10,
+			margins: 10
+		}
+	}
+};
+
+obj consoleMenu_menuState = {
+    enabled: false,
+	visible: false,
+	text: "",
+	history: obj[],
+	maxHistory: 1, 					# Calculated based on size
+	currentSize: { width: 0, height: 0 },
+	cursor: {						# Maybe add modifying middle of command string later
+		visible: false,
+		lastChange: 0,
+		blinkSpeed: 500,
+		color: "#ffffff",
+		thinkness: 1,
+		focused: true
+	}
+};
+
+bool action consoleMenu_hasMenuEnabled() {
+	return (bool)consoleMenu_menuState.enabled;
+}
+
+action consoleMenu_addKey(str key) {
+
+	str newText = (str)consoleMenu_menuState.text + key;
+
+	num size = GAME.OVERLAY.measureText(consoleMenu_config.ui.textbox.fontSize, newText);
+	num maxSize = (num)consoleMenu_menuState.currentSize.width - (num)consoleMenu_config.ui.textbox.sideMargins * 2;
+
+	# Ignoring for now
+	if(size > maxSize) {
+		return;
+	}
+
+	consoleMenu_menuState.text = newText;
+}
+
+action consoleMenu_addHistory(str text, str type, str color) {
+	if(lengthOf consoleMenu_menuState.history == (num)consoleMenu_menuState.maxHistory) {
+		remove consoleMenu_menuState.history[0];
+	}
+	
+	addTo (obj[])consoleMenu_menuState.history {
+		text: text,
+		type: type,
+		color: color
+	};
+}
+
+action consoleMenu_sendCommand() {
+	if(lengthOf consoleMenu_menuState.text == 0) {
+		return;
+	}
+	
+	if((str) consoleMenu_menuState.text == "clear") {
+		consoleMenu_menuState.history = obj[];
+	}
+	else {
+		consoleMenu_addHistory((str)consoleMenu_menuState.text, "C", (str)consoleMenu_config.ui.textHistory.sendColor);
+
+		GAME.NETWORK.send("executeCommand", {command: consoleMenu_menuState.text});
+	}
+
+	consoleMenu_menuState.text = "";
+}
+
+action consoleMenu_handleKeyPress(str key, num code) {
+    if((str)consoleMenu_config.menuKey == key && consoleMenu_hasMenuEnabled()) {
+        consoleMenu_menuState.visible = !consoleMenu_menuState.visible;
+		
+		# Disable/Enable movement
+		obj player = GAME.PLAYERS.getSelf();
+		player.defaultMovement = !consoleMenu_menuState.visible;
+		player.disableShooting = consoleMenu_menuState.visible;
+		player.disableMelee = consoleMenu_menuState.visible;
+
+		# Used to have the server disable player movement too
+		GAME.NETWORK.send("menuChange", { visible: consoleMenu_menuState.visible });
+    }
+	else if ((bool)consoleMenu_menuState.visible) {
+		# Enter
+		if(code == 13) {
+			consoleMenu_sendCommand();
+		
+			# Toggles focus
+			consoleMenu_menuState.cursor.focused = !consoleMenu_menuState.cursor.focused;
+			return;
+		}
+		
+		# If we get here, it has to be focused. Small patch for unfocus -> esc -> click
+		consoleMenu_menuState.cursor.focused = true;
+
+		# Ignore shift
+		if(code == 16) {
+			return;
+		}
+		
+		# Backspace
+		if(code == 8) {
+			num length = lengthOf consoleMenu_menuState.text;
+			
+			consoleMenu_menuState.text = UTILS.truncateTxt(consoleMenu_menuState.text, length - 1, true);
+		
+			return;
+		}
+
+		# Uppercase when shift is held
+		if(GAME.INPUTS.keyDown(16)) {
+			key = UTILS.toUpper(key);
+		}
+
+		if((code >= 65 && code <= 90) || # Characters
+			(code >= 48 && code <= 57) || # Numbers
+			code == 32 || # Space
+			code == 240) { # - sign
+			consoleMenu_addKey(key);
+		}
+	}
+}
+
+action consoleMenu_handleNetworkMessage(str id, obj data) {
+    # Server enables menu
+    if(id == "consoleMenu") {
+        consoleMenu_menuState.enabled = data.enabled;
+		
+		# Force window to close
+		if(!(bool)data.enabled) {
+			consoleMenu_menuState.visible = false;
+		}
+    }
+	else if(id == "commandResponse") {
+		if(!!data.consoleText) {
+			GAME.log(data.consoleText);
+		}
+	
+		if(!!data.text) {
+			consoleMenu_addHistory((str)data.text, "S", (str)consoleMenu_config.ui.textHistory.receiveColor);
+		}
+
+		if(!!data.error) {
+			consoleMenu_addHistory((str)data.error, "E", (str)consoleMenu_config.ui.textHistory.errorColor);
+		}
+	}
+}
+
+action consoleMenu_handleRender() {
+    if(!consoleMenu_menuState.visible) {
+        return;
+    }
+	
+	obj overlaySize = GAME.OVERLAY.getSize();
+	num x = (num)consoleMenu_config.ui.location.x / 100 * (num)overlaySize.width;
+	num y = (num)consoleMenu_config.ui.location.y / 100 * (num)overlaySize.height;
+	
+	num width = (num)consoleMenu_config.ui.size.width / 100 * (num)overlaySize.width;
+	num height = (num)consoleMenu_config.ui.size.height / 100 * (num)overlaySize.height;
+	
+	consoleMenu_menuState.currentSize.width = width;
+	consoleMenu_menuState.currentSize.height = height;
+
+	#Border
+	num borderSize = (num)consoleMenu_config.ui.borderSize;
+
+	if(borderSize > 0) {
+		GAME.OVERLAY.drawRect(x - borderSize / 2, y - borderSize / 2, width + borderSize, height + borderSize, 0, consoleMenu_config.ui.borderColor, consoleMenu_config.ui.opacity, false);
+	}
+
+	# Main menu
+	GAME.OVERLAY.drawRect(x, y, width, height, 0, consoleMenu_config.ui.color, consoleMenu_config.ui.opacity, false);
+
+	# Text box
+	num textBoxHeight = height * ((num)consoleMenu_config.ui.textbox.textBoxHeight / 100);
+	num textBoxY = height + y - textBoxHeight;
+	num textY = textBoxY + 3;
+
+	GAME.OVERLAY.drawRect(x, height + y - textBoxHeight, width, textBoxHeight, 0, consoleMenu_config.ui.textbox.textBoxColor, consoleMenu_config.ui.opacity, false);
+
+	# Text
+	GAME.OVERLAY.drawText(consoleMenu_menuState.text, x + (num)consoleMenu_config.ui.textbox.sideMargins, textY + textBoxHeight / 2, 0, consoleMenu_config.ui.textbox.fontSize, "left", consoleMenu_config.ui.textbox.textColor, consoleMenu_config.ui.opacity);
+
+	# Cursor
+	num size = GAME.OVERLAY.measureText(consoleMenu_config.ui.textbox.fontSize, consoleMenu_menuState.text);
+	num cursorX = size + x + (num)consoleMenu_config.ui.textbox.sideMargins + 2;
+	
+	num currentTime = GAME.TIME.now();
+
+	if(currentTime - (num)consoleMenu_menuState.cursor.lastChange >= (num)consoleMenu_menuState.cursor.blinkSpeed) {
+		consoleMenu_menuState.cursor.visible = !consoleMenu_menuState.cursor.visible;
+		consoleMenu_menuState.cursor.lastChange = currentTime;
+	}
+
+	if((bool)consoleMenu_menuState.cursor.visible && (bool)consoleMenu_menuState.cursor.focused) {
+		GAME.OVERLAY.drawLine(cursorX, textBoxY + 3, cursorX, textBoxY + textBoxHeight - 3, consoleMenu_menuState.cursor.thickness, consoleMenu_menuState.cursor.color, 1);
+	}
+
+	# Text history
+	if(lengthOf consoleMenu_menuState.history > 0) {
+		num historyStart = y + (num)consoleMenu_config.ui.textHistory.margins * 2;
+		num sizePerLine = ((num)consoleMenu_config.ui.textHistory.fontSize * 2);
+		num maxSize = y - (y - textBoxY) - (num)consoleMenu_config.ui.textHistory.margins * 4; # Box size - textbox start - margins
+		
+		consoleMenu_menuState.maxHistory = Math.ceil(maxSize / sizePerLine);
+		
+		for(num i = 0; i < lengthOf consoleMenu_menuState.history; i++) {
+			obj history = (obj)consoleMenu_menuState.history[i];
+			
+			str text = "[" + (str)history.type + "] " + (str)history.text;
+			
+			# Too lazy right now to create new lines on text when it's too large
+			num historyX = x + (num)consoleMenu_config.ui.textHistory.margins;
+			num historyY = historyStart + i * sizePerLine;
+			
+			GAME.OVERLAY.drawText(text, historyX, historyY, 0, consoleMenu_config.ui.textHistory.fontSize, "left", history.color, consoleMenu_config.ui.opacity);
+		}
+	}
+
+	# Need to be focused again
+	if(!(bool)consoleMenu_menuState.cursor.focused) {
+		str text = "Click mouse or hit enter to regain focus";
+		
+		GAME.OVERLAY.drawRect(x, height + y - textBoxHeight, width, textBoxHeight, 0, "#000000", 0.5, false);
+		num size = GAME.OVERLAY.measureText(24, text);
+		GAME.OVERLAY.drawText(text, x + (num)consoleMenu_config.ui.textbox.sideMargins, textY + textBoxHeight / 2, 0, consoleMenu_config.ui.textbox.fontSize, "left", "#ff0000", consoleMenu_config.ui.opacity);
+	}
+}
+
+action consoleMenu_handlePlayerUpdate(str id, obj inputs) {
+	if(!!inputs.lMouse || !!inputs.rMouse) {
+		consoleMenu_menuState.cursor.focused = true;
+	}
+}
+
+action consoleMenu_handlePlayerSpawn(str id) {
+	obj player = GAME.PLAYERS.findByID(id);
+
+	# Console is open, disable movement
+	if((bool)consoleMenu_menuState.visible) {
+		player.defaultMovement = false;
+		player.disableShooting = true;
+		player.disableMelee = true;
+	}
+}
+
+# Game Hooks
+public action onKeyPress(str key, num code) {
+    consoleMenu_handleKeyPress(key, code);
+}
+
+public action onNetworkMessage(str id, obj data) {
+    consoleMenu_handleNetworkMessage(id, data);
+}
+
+public action render(num delta) {
+    consoleMenu_handleRender();
+}
+
+public action onKeyHeld(str key, num code) {
+    consoleMenu_handleKeyPress(key, code);
+}
+
+public action onPlayerUpdate(str id, num delta, static obj inputs) {
+	consoleMenu_handlePlayerUpdate(id, inputs);
+}
+
+public action onPlayerSpawn(str id) {
+	consoleMenu_handlePlayerSpawn(id);
+}
