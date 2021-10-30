@@ -77,7 +77,7 @@ namespace KrunkScriptParser.Models
             }
         }
 
-        private KSType ParseType()
+        private KSType ParseType(bool isArrayDeclaration = false)
         {
             KSType type = new KSType
             {
@@ -93,6 +93,11 @@ namespace KrunkScriptParser.Models
                 type.ArrayDepth++;
 
                 _iterator.Next();
+
+                if(isArrayDeclaration)
+                {
+                    return type;
+                }
 
                 if (_token.Type != TokenTypes.Punctuation || _token.Value != "]")
                 {
@@ -287,7 +292,8 @@ namespace KrunkScriptParser.Models
 
             while (_token.Type != TokenTypes.Terminator && //Line ends
                 _token.Value != ")" &&                     //Group ends
-                _token.Value != ",")                       //Object property ends
+                _token.Value != "," &&                     //Object property ends
+                _token.Value != "}")                       //Object property ends
             {
                 string op = String.Empty;
 
@@ -567,9 +573,14 @@ namespace KrunkScriptParser.Models
 
                     if (_token.Type == TokenTypes.Punctuation)
                     {
-                        if (_token.Value == ",")
+                        if (_token.Value == "," || _token.Value == "}")
                         {
-                            _iterator.Next();
+                            Token next = _iterator.PeekNext();
+
+                            if (next.Value == "}" || next.Type == TokenTypes.Name)
+                            {
+                                _iterator.Next();
+                            }
                         }
                         else if (_token.Value != "}") //A missing comma at the end is no issue
                         {
@@ -583,7 +594,7 @@ namespace KrunkScriptParser.Models
                         {
                             ValidationExceptions.Add(new ValidationException($"Missing ','", _token.Prev.Line, _token.Prev.ColumnEnd));
                         }
-                        else
+                        else if(_token.Type != TokenTypes.Terminator)
                         {
                             throw new ValidationException($"Unexpected value '{_token.Value}'", _token.Line, _token.Column);
                         }
@@ -597,14 +608,7 @@ namespace KrunkScriptParser.Models
             {
                 KSArray ksArray = new KSArray();
 
-                ksArray.Type = ParseType();
-
-                if (_token.Type != TokenTypes.Punctuation || _token.Value != "[")
-                {
-                    throw new ValidationException($"Expected '[' found '{_token.Value}' for array declaration", _token.Line, _token.Column);
-                }
-
-                _iterator.Next();
+                ksArray.Type = ParseType(true);
 
                 //Empty array
                 if (_token.Type == TokenTypes.Punctuation && _token.Value == "]")
@@ -666,7 +670,7 @@ namespace KrunkScriptParser.Models
 
                     if (ksArray.Type != value.Type)
                     {
-                        ValidationExceptions.Add(new ValidationException($"Expected type '{ksArray.Type}. Received '{value.Type}'", _token.Line, _token.Column, level: Level.Error));
+                        ValidationExceptions.Add(new ValidationException($"Expected type '{ksArray.Type.Name}. Received '{value.Type.FullType}'", _token.Line, _token.Column, level: Level.Error));
                     }
 
                     ksArray.Values.Add(value);
@@ -756,12 +760,26 @@ namespace KrunkScriptParser.Models
 
             public Token PeekNext()
             {
-                return _token?.Next;
+                Token t = _token?.Next;
+
+                while (t.Type == TokenTypes.Comment)
+                {
+                    t = t.Next;
+                }
+
+                return t;
             }
 
             public Token PeekPrev()
             {
-                return _token?.Prev;
+                Token t = _token?.Prev;
+
+                while(t.Type == TokenTypes.Comment)
+                {
+                    t = t.Prev;
+                }
+
+                return t;
             }
 
             public Token Next(bool checkEOF = true)

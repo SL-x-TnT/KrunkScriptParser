@@ -43,7 +43,7 @@ obj consoleMenu_menuState = {
     enabled: false,
 	visible: false,
 	text: "",
-	history: obj[],
+	history: obj[1],
 	maxHistory: 1, 					# Calculated based on size
 	currentSize: { width: 0, height: 0 },
 	cursor: {						# Maybe add modifying middle of command string later
