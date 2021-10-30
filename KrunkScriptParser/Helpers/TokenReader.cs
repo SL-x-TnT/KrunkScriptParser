@@ -26,6 +26,7 @@ namespace KrunkScriptParser.Helpers
         private HashSet<char> _operators = new HashSet<char> { '+', '-', '*', '/', '<', '>', '!', '&', '|' };
         private HashSet<string> _keywords = new HashSet<string> { "if", "while", "else", "for", "break", "continue", "return" };
         private HashSet<string> _methods = new HashSet<string> { "addTo", "remove", "lengthOf", "notEmpty", "toStr", "toNum" };
+        private HashSet<string> _globalObjects = new HashSet<string> { "GAME", "UTILS" };
 
 
         public TokenReader(string text) : base(new MemoryStream(Encoding.UTF8.GetBytes(text)))
@@ -250,6 +251,10 @@ namespace KrunkScriptParser.Helpers
             else if (_methods.Contains(name))
             {
                 return TokenTypes.KeyMethod;
+            }
+            else if (_globalObjects.Contains(name))
+            {
+                return TokenTypes.GlobalObject;
             }
             else if (_modifierKeywords.Contains(name))
             {

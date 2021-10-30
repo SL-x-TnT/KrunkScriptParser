@@ -7,9 +7,12 @@ using System.Threading.Tasks;
 
 namespace KrunkScriptParser.Models.Blocks
 {
-    public class KSAction : IBlock
+    public class KSAction
     {
-        public string Text { get; private set; }
-
+        public string Text { get; set; }
+        public KSType ReturnType { get; set; }
+        public KSParameter[] Parameters { get; set; }
+        public bool IsAction { get; set; }
+        public int TotalOptionalParams { get; set; }
     }
 }

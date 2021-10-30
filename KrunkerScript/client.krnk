@@ -2,6 +2,9 @@
 # KrunkScript Copyright (C) Yendis Entertainment Pty Ltd
 # 
 
+num a = 1;
+num c = GAME.log("a", "b", toStr 1);
+
 #num[] b = num[0];
 
 #num c = b[test.a];
