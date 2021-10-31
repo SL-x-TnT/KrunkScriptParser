@@ -15,7 +15,7 @@ namespace KrunkScriptParser.Validator
         /// Parses an entire expression. Ex: num a = 1 + 1
         /// Recursively parses inner expression. Ex: num a = (1 + 1) + 1;
         /// </summary>
-        private KSExpression ParseExpression(IKSValue prevValue = null, int depth = 0)
+        private KSExpression ParseExpression(IKSValue prevValue = null, int depth = 0, bool isArguments = false)
         {
             KSExpression expression = new KSExpression();
 
@@ -93,7 +93,10 @@ namespace KrunkScriptParser.Validator
                 expression.ForcedType = forcedTypes.FirstOrDefault()?.ReturnType;
             }
 
-            if(_token.Value == ")")
+            //Don't iterate passed the last ) for arguments
+            bool skipParentheses = isArguments && _iterator.PeekNext().Type == TokenTypes.Terminator;
+
+            if(!skipParentheses && _token.Value == ")")
             {
                 _iterator.Next();
             }
@@ -240,7 +243,7 @@ namespace KrunkScriptParser.Validator
                         }
                     }
 
-                    if (leftType != rightType)
+                    if (leftType != rightType && !String.IsNullOrEmpty(op))
                     {
                         AddValidationException($"Mismatched types. Expected '{leftType.FullType}'. Received {leftType.FullType} {op} {rightType.FullType}");
                     }
