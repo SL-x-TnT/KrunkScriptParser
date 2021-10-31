@@ -348,7 +348,7 @@ namespace KrunkScriptParser.Validator
 
                     variable = new KSVariable
                     {
-                        Name = initialToken.Value,
+                        Name = name,
                         Type = KSType.Any
                     };
                 }

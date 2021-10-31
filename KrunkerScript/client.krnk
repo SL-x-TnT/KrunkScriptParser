@@ -1,12 +1,7 @@
 # Client Script runs only on the client
 # KrunkScript Copyright (C) Yendis Entertainment Pty Ltd
 # 
-num a = 1;
-num b = GAME.UTILS.randFloat(1, a);
-
-#num[] b = num[0];
-
-#num c = b[test.a];
+obj a = {};
 
 obj consoleMenu_config = {
 	menuKey: "`",           # Key used to open menu
@@ -45,7 +40,7 @@ obj consoleMenu_menuState = {
     enabled: false,
 	visible: false,
 	text: "",
-	history: obj[2, 3, 4],
+	history: obj[],
 	maxHistory: 1, 					# Calculated based on size
 	currentSize: { width: 0, height: 0 },
 	cursor: {						# Maybe add modifying middle of command string later

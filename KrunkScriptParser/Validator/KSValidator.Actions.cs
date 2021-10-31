@@ -45,10 +45,22 @@ namespace KrunkScriptParser.Validator
 
             while ((_token.Type == TokenTypes.Type || _token.Type == TokenTypes.Action) ||
                 _token.Value == "." ||
-                (isGlobalMethod && _token.Value == "any")
+                (isGlobalMethod && _token.Value == "any") || 
+                _token.Type == TokenTypes.Modifier
                 )
             {
                 KSType type = null;
+
+                //Skip modifier, if there's one
+                if(_token.Type == TokenTypes.Modifier)
+                {
+                    if(_token.Value != "static")
+                    {
+                        AddValidationException(new ValidationException($"Expected a type. Received modifier {_token.Value}", _token.Line, _token.Column));
+                    }
+
+                    _iterator.Next();
+                }
 
                 //Global methods can have actions
                 if (_token.Type == TokenTypes.Action && isGlobalMethod)

@@ -1,4 +1,3 @@
-str GAME.UTILS.invertHex(str hex)
 GAME.ADMIN.ban(str playerID) 
 GAME.ADMIN.kick(str playerID) 
 GAME.ADS.playVideo()

@@ -90,10 +90,6 @@ namespace KrunkScriptParser.Validator
                 expression.ForcedType = forcedTypes.FirstOrDefault().Item1;
             }
 
-            if (expression.Type == null)
-            {
-            }
-
             return expression;
 
         }
