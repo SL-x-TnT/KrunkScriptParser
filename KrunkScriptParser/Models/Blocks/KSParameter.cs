@@ -5,12 +5,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace KrunkScriptParser.Models
+namespace KrunkScriptParser.Models.Blocks
 {
     public class KSParameter : IKSValue
     {
         public KSType Type { get; set; }
         public string Name { get; set; }
         public bool MultiProp { get; set; }
+        public bool Optional { get; set; }
     }
 }

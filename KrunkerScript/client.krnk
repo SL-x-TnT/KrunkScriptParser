@@ -1,9 +1,8 @@
 # Client Script runs only on the client
 # KrunkScript Copyright (C) Yendis Entertainment Pty Ltd
 # 
-
 num a = 1;
-num c = GAME.log("a", "b", toStr 1);
+num b = GAME.UTILS.randFloat(1, a);
 
 #num[] b = num[0];
 
@@ -46,7 +45,7 @@ obj consoleMenu_menuState = {
     enabled: false,
 	visible: false,
 	text: "",
-	history: obj[1],
+	history: obj[2, 3, 4],
 	maxHistory: 1, 					# Calculated based on size
 	currentSize: { width: 0, height: 0 },
 	cursor: {						# Maybe add modifying middle of command string later

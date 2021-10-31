@@ -46,7 +46,7 @@ namespace KrunkScriptParser.Models.Blocks
 
         public override bool Equals(object obj)
         {
-            if(obj is KSType type)
+            if (obj is KSType type)
             {
                 return type.FullType == FullType;
             }
@@ -56,29 +56,14 @@ namespace KrunkScriptParser.Models.Blocks
 
         private string _fullType = string.Empty;
 
-        public static readonly KSType String = new KSType
-        {
-            Name = "str"
-        };
+        public static readonly KSType String = new KSType { Name = "str" }; 
+        public static readonly KSType Bool = new KSType { Name = "bool" }; 
+        public static readonly KSType Number = new KSType { Name = "num" }; 
+        public static readonly KSType Object = new KSType { Name = "obj" }; 
 
-        public static readonly KSType Bool = new KSType
-        {
-            Name = "bool"
-        };
-
-        public static readonly KSType Number = new KSType
-        {
-            Name = "num"
-        };
-
-        public static readonly KSType Object = new KSType
-        {
-            Name = "obj"
-        };
-
-        public static readonly KSType Any = new KSType
-        {
-            Name = "any"
-        };
+        //Internal types
+        public static readonly KSType Void = new KSType { Name = "void" }; 
+        public static readonly KSType Any = new KSType { Name = "any" };
+        public static readonly KSType Action = new KSType { Name = "action" };
     }
 }

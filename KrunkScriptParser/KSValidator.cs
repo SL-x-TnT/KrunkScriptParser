@@ -1,4 +1,5 @@
 ﻿using KrunkScriptParser.Helpers;
+using KrunkScriptParser.Models;
 using KrunkScriptParser.Models.Blocks;
 using KrunkScriptParser.Models.Tokens;
 using System;
@@ -8,85 +9,60 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace KrunkScriptParser.Models
+namespace KrunkScriptParser
 {
-    public class KSInfo
+    public class KSValidator
     {
         public List<ValidationException> ValidationExceptions { get; private set; } = new List<ValidationException>();
 
-        private LinkedList<Dictionary<string, KSAction>> _actions = new LinkedList<Dictionary<string, KSAction>>();
-        private LinkedList<Dictionary<string, KSVariable>> _variables = new LinkedList<Dictionary<string, KSVariable>>();
-        private LinkedListNode<Dictionary<string, KSVariable>> _variableNode;
-        private LinkedListNode<Dictionary<string, KSAction>> _actionNode;
+        private LinkedList<Dictionary<string, IKSValue>> _declarations = new LinkedList<Dictionary<string, IKSValue>>();
+        private LinkedListNode<Dictionary<string, IKSValue>> _declarationNode;
 
-        private Dictionary<string, KSAction> _krunkerGlobalVariables = new Dictionary<string, KSAction>();
+        private Dictionary<string, IKSValue> _krunkerGlobalVariables = new Dictionary<string, IKSValue>();
 
         private TokenIterator _iterator;
         private Token _token => _iterator.Current;
+        private TokenReader _reader;
 
-        private static List<KSAction> _globalKrunkerObjects = new List<KSAction>();
+        public event EventHandler<ValidationException> OnValidationError;
 
-        private void Initialize()
+        public KSValidator(string text)
         {
-            if(_globalKrunkerObjects.Count > 0)
-            {
-                return;
-            }
+            _reader = new TokenReader(text);
+        }
 
-            //Read file + parse file
+        public bool Validate()
+        {
+            InitializeGlobals();
+
             try
             {
-                string text = File.ReadAllText("globalObjects.krnk");
+                ParseTokens();
 
-                ParseGlobalObjects(text);
+                return true;
             }
             catch(Exception ex)
             {
-                ValidationExceptions.Add(new ValidationException($"Failed to parse 'globalObjects.krnk' file. Additional errors may occur", 0, 0, level: Level.Warning));
+                AddValidationException(new ValidationException($"Parser failed due to an exception. Message: {ex.Message}", _token.Line, _token.Column));
+
+                return false;
             }
         }
 
-        private void ParseGlobalObjects(string text)
+        private void InitializeTokens()
         {
-            TokenReader reader = new TokenReader(text);
-            _iterator = new TokenIterator(reader.ReadToken());
-
-            while(!reader.EndOfStream)
-            {
-                KSType returnType = ParseType();
-                IKSValue value = ParseName();
-
-                if(value is KSAction)
-                {
-
-                }
-                else
-                {
-
-                }
-            }
+            _iterator = new TokenIterator(_reader.ReadAllTokens());
         }
 
-        public void ParseTokens(Token token)
+        private void ParseTokens()
         {
-            Initialize();
-
-            if (token == null)
-            {
-                return;
-            }
-
-            _iterator = new TokenIterator(token);
+            InitializeTokens();
 
             SkipComments();
 
             //Variables
-            _variableNode = new LinkedListNode<Dictionary<string, KSVariable>>(new Dictionary<string, KSVariable>());
-            _variables.AddFirst(_variableNode);
-
-            //Actions
-            _actionNode = new LinkedListNode<Dictionary<string, KSAction>>(new Dictionary<string, KSAction>());
-            _actions.AddFirst(_actionNode);
+            _declarationNode = new LinkedListNode<Dictionary<string, IKSValue>>(new Dictionary<string, IKSValue>());
+            _declarations.AddFirst(_declarationNode);
 
             while (_token != null)
             {
@@ -114,7 +90,7 @@ namespace KrunkScriptParser.Models
                 }
                 catch (ValidationException ex)
                 {
-                    ValidationExceptions.Add(ex);
+                    AddValidationException(ex);
 
                     if (!ex.CanContinue)
                     {
@@ -122,6 +98,88 @@ namespace KrunkScriptParser.Models
                     }
 
                     _iterator.SkipLine();
+                }
+            }
+        }
+
+        private void InitializeGlobals()
+        {
+            if(_krunkerGlobalVariables.Count > 0)
+            {
+                return;
+            }
+
+            //Read file + parse file
+            try
+            {
+                string text = File.ReadAllText("globalObjects.krnk");
+
+                ParseGlobalObjects(text);
+            }
+            catch(ValidationException ex)
+            {
+                AddValidationException(ex);
+                AddValidationException(new ValidationException($"Failed to parse 'globalObjects.krnk' file. Additional errors may occur", _token.Line, _token.Column, level: Level.Warning));
+            }
+        }
+
+        private void ParseGlobalObjects(string text)
+        {
+            TokenReader reader = new TokenReader(text);
+            _iterator = new TokenIterator(reader.ReadAllTokens());
+            
+            while(_iterator.PeekNext() != null)
+            {
+                KSType returnType = KSType.Void;
+
+                if (_token.Type == TokenTypes.Type)
+                {
+                    returnType = ParseType();
+                }
+
+                string name = String.Empty;
+                bool globalFinished = false;
+
+                while ((_token.Type != TokenTypes.Type && _token.Value != "("))
+                {
+                    if(!String.IsNullOrEmpty(name) && _token.Type == TokenTypes.GlobalObject && globalFinished)
+                    {
+                        break;
+                    }
+
+                    name += _token.Value;
+
+                    _iterator.Next();
+
+                    if (_token.Type == TokenTypes.Name)
+                    {
+                        globalFinished = true;
+                    }
+                }
+
+                //Action
+                if(_token.Value == "(")
+                {
+                    _iterator.Next();
+
+                    List<KSParameter> parameters = ParseParameters(true);
+
+                    _krunkerGlobalVariables.TryAdd(name, new KSAction
+                    {
+                        Type = returnType,
+                        Parameters = parameters,
+                        Text = name
+                    });
+
+                    _iterator.Next(false);
+                }
+                else //Property
+                {
+                    _krunkerGlobalVariables.TryAdd(name, new KSVariable
+                    {
+                        Name = name,
+                        Type = returnType
+                    });
                 }
             }
         }
@@ -186,7 +244,7 @@ namespace KrunkScriptParser.Models
             //TODO: Nested array support
             if (variable.Type.ArrayDepth > 1)
             {
-                ValidationExceptions.Add(new ValidationException($"Nested arrays currently not validated", _token.Line, _token.Column, level: Level.Info));
+                AddValidationException(new ValidationException($"Nested arrays currently not validated", _token.Line, _token.Column, level: Level.Info));
 
                 _iterator.SkipUntil(TokenTypes.Terminator);
 
@@ -215,13 +273,13 @@ namespace KrunkScriptParser.Models
 
             if (variable.Type.FullType != expression.CurrentType.FullType)
             {
-                ValidationExceptions.Add(new ValidationException($"Expected type '{variable.Type.FullType}. Received '{expression.CurrentType.FullType}'", _token.Line, _token.Column, level: Level.Error));
+                AddValidationException(new ValidationException($"Variable expected type '{variable.Type.FullType}'. Received '{expression.CurrentType.FullType}'", _token.Line, _token.Column, level: Level.Error));
             }
 
             //Line terminator
             if (_token.Type != TokenTypes.Terminator)
             {
-                ValidationExceptions.Add(new ValidationException($"Expected ';'", _token.Prev.Line, _token.Prev.ColumnEnd));
+                AddValidationException(new ValidationException($"Expected ';'", _token.Prev.Line, _token.Prev.ColumnEnd));
 
                 int line = _token.Line;
 
@@ -245,7 +303,7 @@ namespace KrunkScriptParser.Models
 
             List<(KSType, bool)> forcedTypes = new List<(KSType, bool)>();
 
-            while(_token.Type == TokenTypes.KeyMethod)
+            while (_token.Type == TokenTypes.KeyMethod)
             {
                 switch (_token.Value)
                 {
@@ -275,7 +333,7 @@ namespace KrunkScriptParser.Models
 
                         if (_token.Type != TokenTypes.Punctuation || _token.Value != ")")
                         {
-                            ValidationExceptions.Add(new ValidationException($"Missing ')'", _token.Line, _token.Column));
+                            AddValidationException(new ValidationException($"Missing ')'", _token.Line, _token.Column));
                         }
                         else
                         {
@@ -289,7 +347,8 @@ namespace KrunkScriptParser.Models
                         expression.Value = innerExpression;
                         expression.Type = innerExpression.CurrentType;
 
-                        SetForcedType(expression, forcedTypes);
+                        ValidateForcedType(expression.CurrentType, forcedTypes);
+                        expression.ForcedType = forcedTypes.LastOrDefault().Item1;
 
                         return expression;
                     }
@@ -304,40 +363,46 @@ namespace KrunkScriptParser.Models
                 _iterator.Next();
             }
 
-            expression.Value = ParseGroup(null, forcedTypes.FirstOrDefault().Item1);
+            expression.Value = ParseGroup(null, forcedTypes);
             expression.Type = expression.Value.Type;
 
-            SetForcedType(expression, forcedTypes);
+            if (forcedTypes != null)
+            {
+                ValidateForcedType(expression.CurrentType, forcedTypes);
+                expression.ForcedType = forcedTypes.FirstOrDefault().Item1;
+            }
 
+            if(expression.Type == null)
+            { 
+            }
 
             return expression;
 
-            void SetForcedType(KSExpression expression, List<(KSType, bool)> types)
+        }
+
+        private void ValidateForcedType(KSType currentType, List<(KSType, bool)> types)
+        {
+            foreach ((KSType t, bool force) type in types.Reverse<(KSType, bool)>())
             {
-                KSType currentType = expression.CurrentType;
-
-                foreach((KSType t, bool force) type in types.Reverse<(KSType, bool)>())
+                //Was a cast, verify there's no type changes
+                if (!type.force && currentType != KSType.Any)
                 {
-                    //Was a cast, verify there's no type changes
-                    if(!type.force && currentType != KSType.Any)
+                    if (currentType != type.t)
                     {
-                        if (currentType != type.t)
-                        {
-                            ValidationExceptions.Add(new ValidationException($"Invalid cast to '{type.t.FullType}'", _token.Line, _token.Column));
-                        }
+                        AddValidationException(new ValidationException($"Invalid cast to '{type.t.FullType}'", _token.Line, _token.Column));
                     }
-
-                    currentType = type.t;
                 }
+
+                currentType = type.t;
             }
         }
 
-        private IKSValue ParseGroup(KSExpression value = null, KSType forcedType = null)
+        private IKSValue ParseGroup(KSExpression value = null, List<(KSType, bool)> initialTypes = null)
         {
             IKSValue leftValue = value;
 
             KSGroup group = new KSGroup();
-            group.Type = value?.CurrentType ?? forcedType;
+            group.Type = value?.CurrentType ?? initialTypes?.LastOrDefault().Item1;
 
             if(value != null)
             {
@@ -359,7 +424,7 @@ namespace KrunkScriptParser.Models
 
                 if (!String.IsNullOrEmpty(op) && (leftValue == null || !IsValidOperator(op)))
                 {
-                    ValidationExceptions.Add(new ValidationException($"Invalid operator '{op}'", _token.Line, _token.Column));
+                    AddValidationException(new ValidationException($"Invalid operator '{op}'", _token.Line, _token.Column));
                 }
 
                 IKSValue rightValue = null;
@@ -373,10 +438,11 @@ namespace KrunkScriptParser.Models
                 {
                     rightValue = ParseValue();
 
-                    if(forcedType != null)
+                    if(initialTypes != null && initialTypes.Count > 0)
                     {
-                        rightValue.Type = forcedType;
-                        forcedType = null;
+                        ValidateForcedType(rightValue.Type, initialTypes);
+                        rightValue.Type = initialTypes.FirstOrDefault().Item1;
+                        initialTypes = null;
                     }
                 }
 
@@ -387,11 +453,14 @@ namespace KrunkScriptParser.Models
                     ValidateValues(op, leftValue, rightValue);
                 }
 
-                group.Type = rightValue.Type;
+                if (group.Type == null)
+                {
+                    group.Type = rightValue.Type;
+                }
 
                 leftValue = rightValue;
 
-                if (_token.Type != TokenTypes.Terminator)
+                if (_token.Type != TokenTypes.Terminator && _token.Type != TokenTypes.Operator)
                 {
                     _iterator.Next();
                 }
@@ -442,7 +511,8 @@ namespace KrunkScriptParser.Models
                 {
                     if(leftType != rightType)
                     {
-                        ValidationExceptions.Add(new ValidationException($"Mismatched types. Expected '{leftType.FullType}'. Received '{rightType.FullType}'", _token.Line, _token.Column));
+                        AddValidationException(new ValidationException($"Mismatched types. Expected '{leftType.FullType}'. Received {leftType.FullType} {op} {rightType.FullType}", 
+                            _token.Line, _token.Column));
                     }
                 }
 
@@ -453,7 +523,7 @@ namespace KrunkScriptParser.Models
                         case "+":
                             if (rightType != KSType.String && rightType != KSType.Number)
                             {
-                                ValidationExceptions.Add(new ValidationException($"Expected '{KSType.String.FullType}' or '{KSType.Number.FullType}'. Received '{rightType.FullType}'", _token.Line, _token.Column));
+                                AddValidationException(new ValidationException($"Expected '{KSType.String.FullType}' or '{KSType.Number.FullType}' with operator '{op}'. Received {leftType.FullType} {op} {rightType.FullType}", _token.Line, _token.Column));
                             }
 
                             break;
@@ -465,7 +535,7 @@ namespace KrunkScriptParser.Models
                         case "<<<":
                             if(rightType != KSType.Number)
                             {
-                                ValidationExceptions.Add(new ValidationException($"Expected '{KSType.Number.FullType}'. Received '{rightType.FullType}'", _token.Line, _token.Column));
+                                AddValidationException(new ValidationException($"Expected '{KSType.Number.FullType}' with operator '{op}'. Received {leftType.FullType} {op} {rightType.FullType}", _token.Line, _token.Column));
                             }
                             break;
                     }
@@ -517,11 +587,11 @@ namespace KrunkScriptParser.Models
 
                 KSVariableName variableName = new KSVariableName
                 {
-                    Type = variable.Type,
-                    //Variable = variable
+                    Type = variable?.Type ?? KSType.Any,
+                    Variable = variable as KSVariable
                 };
 
-                if (variable.Type.IsArray)
+                if (variable?.Type.IsArray == true)
                 {
                     //Check to see if indexed
                     Token next = _iterator.PeekNext();
@@ -538,7 +608,7 @@ namespace KrunkScriptParser.Models
                             if (ksVariable.Variable.Type.IsArray && ksVariable.Variable.Type.ArrayDepth > 1)
                             {
                                 //TODO: Nested arrays
-                                ValidationExceptions.Add(new ValidationException($"Nested arrays currently not validated", _token.Line, _token.Column, level: Level.Info));
+                                AddValidationException(new ValidationException($"Nested arrays currently not validated", _token.Line, _token.Column, level: Level.Info));
 
                                 _iterator.SkipUntil(new HashSet<string> { ",", "}", ";" });
                             }
@@ -550,7 +620,7 @@ namespace KrunkScriptParser.Models
 
                         if (indexer.Type != KSType.Number)
                         {
-                            ValidationExceptions.Add(new ValidationException($"Expected 'num' found '{indexer.Type}'", _token.Line, _token.Column));
+                            AddValidationException(new ValidationException($"Expected 'num' found '{indexer.Type}'", _token.Line, _token.Column));
                         }
 
                         _iterator.Next();
@@ -569,7 +639,7 @@ namespace KrunkScriptParser.Models
             }
             else
             {
-                throw new ValidationException($"Expected value expression. Found: {_token.Value}", _token.Line, _token.ColumnEnd);
+                throw new ValidationException($"Expected value expression. Found: {_token.Value}", _token.Line, _token.Column);
             }
 
             throw new Exception("Fix this");
@@ -613,7 +683,7 @@ namespace KrunkScriptParser.Models
 
                     if (!ksObject.Properties.TryAdd(name, expression))
                     {
-                        ValidationExceptions.Add(new ValidationException($"Property '{name}' already exists", _token.Line, _token.Column));
+                        AddValidationException(new ValidationException($"Property '{name}' already exists", _token.Line, _token.Column));
 
                         _iterator.SkipUntil(TokenTypes.Name | TokenTypes.Punctuation); //Skip until the next name, comma, or }
                     }
@@ -631,7 +701,7 @@ namespace KrunkScriptParser.Models
                         }
                         else if (_token.Value != "}") //A missing comma at the end is no issue
                         {
-                            ValidationExceptions.Add(new ValidationException($"Unexpected value '{_token.Value}", _token.Line, _token.ColumnEnd));
+                            AddValidationException(new ValidationException($"Unexpected value '{_token.Value}", _token.Line, _token.ColumnEnd));
                         }
                     }
                     else
@@ -639,7 +709,7 @@ namespace KrunkScriptParser.Models
                         //We were missing a comma
                         if (_token.Type == TokenTypes.Name)
                         {
-                            ValidationExceptions.Add(new ValidationException($"Missing ','", _token.Prev.Line, _token.Prev.ColumnEnd));
+                            AddValidationException(new ValidationException($"Missing ','", _token.Prev.Line, _token.Prev.ColumnEnd));
                         }
                         else if(_token.Type != TokenTypes.Terminator)
                         {
@@ -674,7 +744,7 @@ namespace KrunkScriptParser.Models
                         {
                             _iterator.Next();
 
-                            ValidationExceptions.Add(new ValidationException($"Nested arrays currently not validated", _token.Line, _token.Column, level: Level.Info));
+                            AddValidationException(new ValidationException($"Nested arrays currently not validated", _token.Line, _token.Column, level: Level.Info));
 
                             int nestedDepth = 1;
 
@@ -717,7 +787,7 @@ namespace KrunkScriptParser.Models
 
                     if (ksArray.Type != value.Type)
                     {
-                        ValidationExceptions.Add(new ValidationException($"Expected type '{ksArray.Type.Name}. Received '{value.Type.FullType}'", _token.Line, _token.Column, level: Level.Error));
+                        AddValidationException(new ValidationException($"Expected type '{ksArray.Type.Name}'. Received '{value.Type.FullType}'", _token.Line, _token.Column, level: Level.Error));
                     }
 
                     ksArray.Values.Add(value);
@@ -751,7 +821,9 @@ namespace KrunkScriptParser.Models
                 Token prev = _token;
                 bool isAction = false;
                 bool isObj = false;
+                string name = initialToken.Value;
 
+                //Checks for methods/objects
                 while (true)
                 {
                     _iterator.Next();
@@ -760,6 +832,8 @@ namespace KrunkScriptParser.Models
                         prev.Value == "." && (_token.Type == TokenTypes.Name || _token.Type == TokenTypes.GlobalObject))
                     {
                         isObj = true;
+
+                        name += _token.Value;
                     }
                     else if (_token.Value == "(")
                     {
@@ -769,71 +843,108 @@ namespace KrunkScriptParser.Models
                     }
                     else
                     {
+                        _iterator.Prev();
+
                         break;
                     }
 
                     prev = _token;
                 }
 
-                if (isAction)
-                {
-                    _iterator.Next();
+                IKSValue variable = null;
 
-                    List<IKSValue> values = ParseArguments();
-
-                    if (initialToken.Type == TokenTypes.Name)
+                if(initialToken.Type == TokenTypes.Name)
+                { 
+                    if(isAction && isObj)
                     {
-                        if (isObj)
-                        {
-                            ValidationExceptions.Add(new ValidationException($"Action properties on objects currently not supported", initialToken.Line, initialToken.Column));
-                        }
-                        else
-                        {
-                            if (!TryGetAction(initialToken.Value, values, out KSAction action))
-                            {
-                                ValidationExceptions.Add(new ValidationException($"Action '{_token.Value}' not defined", _token.Line, _token.Column));
-
-                                //Attempt to fix
-                                _iterator.SkipUntil(new HashSet<string> { ";", ",", "}" });
-
-                                return null;
-                            }
-                        }
+                        AddValidationException(new ValidationException($"Action properties on objects currently not supported", initialToken.Line, initialToken.Column));
                     }
-                    else
+                    else if (isObj)
                     {
+                        if (!TryGetDeclaration(initialToken.Value, out IKSValue value))
+                        {
+                            AddValidationException(new ValidationException($"Variable '{_token.Value}' not defined", _token.Line, _token.Column));
 
+                            //Attempt to fix
+                            _iterator.SkipUntil(new HashSet<string> { ";", ",", "}" });
+
+                            return null;
+                        }
+
+                        variable = new KSVariable
+                        {
+                            Name = initialToken.Value,
+                            Type = KSType.Any
+                        };
+                    }
+                    else if(isAction)
+                    {
+                        List<IKSValue> arguments = ParseArguments();
+                        IKSValue foundAction;
+
+                        if (!TryGetDeclaration(initialToken.Value, out foundAction))
+                        {
+                            AddValidationException(new ValidationException($"Action '{_token.Value}' is not defined", _token.Line, _token.Column));
+
+                            //Attempt to fix
+                            _iterator.SkipUntil(new HashSet<string> { ";", ",", "}" });
+
+                            return null;
+                        }
+
+                        if (!(foundAction is KSAction))
+                        {
+                            AddValidationException(new ValidationException($"'{_token.Value}' is not an action", _token.Line, _token.Column));
+
+                            return null;
+                        }
+
+                        ValidateArguments(arguments, foundAction as KSAction);
+                    }
+                    else //Normal variable
+                    {
+                        if (!TryGetDeclaration(initialToken.Value, out IKSValue value))
+                        {
+                            AddValidationException(new ValidationException($"Variable '{_token.Value}' not defined", _token.Line, _token.Column));
+
+                            //Attempt to fix
+                            _iterator.SkipUntil(new HashSet<string> { ";", ",", "}" });
+
+                            return null;
+                        }
+
+                        variable = value as KSVariable;
                     }
                 }
-
-                if (initialToken.Type == TokenTypes.Name)
+                else //Globals
                 {
-                }
-                else //Global
-                {
-                }
-
-                KSVariable variable = null;
-
-                if (_token.Type == TokenTypes.Name)
-                {
-                    if (!TryGetVariable(initialToken.Value, out variable))
+                    if (!_krunkerGlobalVariables.TryGetValue(name, out IKSValue v))
                     {
-                        ValidationExceptions.Add(new ValidationException($"Variable '{_token.Value}' not defined", _token.Line, _token.Column));
-
-                        //Attempt to fix
-                        _iterator.SkipUntil(new HashSet<string> { ";", ",", "}" });
+                        AddValidationException(new ValidationException($"Global '{name}' is not defined", _token.Line, _token.Column));
 
                         return null;
                     }
+
+                    if(v is KSVariable globalVariable)
+                    {
+                        variable = globalVariable;
+                    }
+                    else if (v is KSAction ksAction)
+                    {
+                        _iterator.Next();
+
+                        variable = ksAction;
+
+                        List<IKSValue> arguments = ParseArguments();
+                        ValidateArguments(arguments, ksAction);
+
+
+                    }
                 }
 
-                _iterator.Next();
-
-                return null;
+                return variable;
             }
         }
-
 
         private List<IKSValue> ParseArguments()
         {
@@ -857,23 +968,46 @@ namespace KrunkScriptParser.Models
             return values;
         }
 
-        private List<KSParameter> ParseParameters(bool allowSpreadNotation = false)
+        private List<KSParameter> ParseParameters(bool isGlobalMethod = false)
         {
             List<KSParameter> parameters = new List<KSParameter>();
 
-            while (_token.Type != TokenTypes.Type || _token.Value == ".")
+            while ((_token.Type == TokenTypes.Type || _token.Type == TokenTypes.Action) || 
+                _token.Value == "." ||
+                (isGlobalMethod && _token.Value == "any")
+                )
             {
-                KSType type = ParseType();
+                KSType type = null;
 
-                if (_token.Type != TokenTypes.Name)
+                //Global methods can have actions
+                if (_token.Type == TokenTypes.Action && isGlobalMethod)
                 {
-                    //Getting too tired to save invalid code
-                    throw new ValidationException($"Expected parameter name. Received '{_token.Value}'", _token.Line, _token.Column);
+                    type = KSType.Action;
+
+                    _iterator.Next();
+                }
+                else if (_token.Value == "any" && isGlobalMethod)
+                {
+                    type = KSType.Any;
+
+                    _iterator.Next();
+                }
+                else
+                {
+                    type = ParseType();
+                }
+
+                bool optional = false;
+
+                if (isGlobalMethod && _token.Value == "?")
+                {
+                    optional = true;
+                    _iterator.Next();
                 }
 
                 string multiProp = String.Empty;
 
-                while (_token.Value == ".")
+                while (_token.Type == TokenTypes.Punctuation)
                 {
                     multiProp += _token.Value;
 
@@ -886,26 +1020,33 @@ namespace KrunkScriptParser.Models
                 {
                     if (multiProp == "...")
                     {
-                        if (allowSpreadNotation)
+                        if (isGlobalMethod)
                         {
                             isMultiProp = true;
                         }
                         else
                         {
-                            ValidationExceptions.Add(new ValidationException($"Spread notation '...' not supported", _token.Line, _token.Column));
+                            AddValidationException(new ValidationException($"Spread notation '...' not supported", _token.Line, _token.Column));
                         }
                     }
                     else
                     {
-                        ValidationExceptions.Add(new ValidationException($"Unexpected value '{multiProp}'", _token.Line, _token.Column));
+                        AddValidationException(new ValidationException($"Unexpected value '{multiProp}'", _token.Line, _token.Column));
                     }
+                }
+
+                if (_token.Type != TokenTypes.Name)
+                {
+                    //Getting too tired to save invalid code
+                    throw new ValidationException($"Expected parameter name. Received '{_token.Value}'", _token.Line, _token.Column);
                 }
 
                 parameters.Add(new KSParameter
                 {
                     Name = _token.Value,
                     Type = type,
-                    MultiProp = isMultiProp
+                    MultiProp = isMultiProp,
+                    Optional = optional
                 });
 
                 _iterator.Next();
@@ -917,7 +1058,54 @@ namespace KrunkScriptParser.Models
                 }
             }
 
+            if(_token.Value != ")")
+            {
+                AddValidationException(new ValidationException($"Expected ')'. Received '{_token.Value}'", _token.Line, _token.Column));
+
+                _iterator.SkipUntil(new HashSet<string> { ")", ";" });
+            }
+
             return parameters;
+        }
+
+        private void ValidateArguments(List<IKSValue> arguments, KSAction action)
+        {
+            int parameterIndex = 0;
+            int expected = action.Parameters.Count(x => !x.Optional);
+
+            foreach (KSExpression argument in arguments)
+            {
+                if(parameterIndex >= action.Parameters.Count)
+                {
+                    AddValidationException(new ValidationException($"Invalid argument count. Received {arguments.Count} and expected {action.Parameters.Count}", _token.Line, _token.Column));
+
+                    return;
+                }
+
+                KSParameter parameter = action.Parameters[parameterIndex];
+
+                if(parameter.Type.FullType != argument.CurrentType.FullType && parameter.Type != KSType.Any)
+                {
+                    Level level = Level.Error;
+
+                    if(action.Global)
+                    {
+                        level = Level.Warning;
+                    }
+
+                    AddValidationException(new ValidationException($"Expected type '{parameter.Type.FullType}' for parameter '{parameter.Type.FullType}'. Received '{argument.CurrentType.FullType}'", _token.Line, _token.Column, level: level));
+                }
+
+                if(!parameter.MultiProp)
+                {
+                    parameterIndex++;
+                }
+            }
+
+            if (parameterIndex < expected)
+            {
+                AddValidationException(new ValidationException($"Invalid argument count. Received {arguments.Count} and expected {expected}", _token.Line, _token.Column));
+            }
         }
 
         private void SkipComments()
@@ -930,28 +1118,28 @@ namespace KrunkScriptParser.Models
 
         private void AddVariable(KSVariable variable)
         {
-            bool alreadyDeclared = TryGetVariable(variable.Name, out KSVariable _);
+            bool alreadyDeclared = TryGetDeclaration(variable.Name, out IKSValue _);
 
-            if(!_variableNode.Value.TryAdd(variable.Name, variable))
+            if(!_declarationNode.Value.TryAdd(variable.Name, variable))
             {
-                throw new ValidationException($"Variable '{variable.Name}' has already been declared", _iterator.Current.Line, _iterator.Current.Column, true);
+                throw new ValidationException($"'{variable.Name}' has already been declared", _iterator.Current.Line, _iterator.Current.Column, true);
             }
 
             //Variable name is declared higher up, but that's valid
             if(alreadyDeclared)
             {
-                ValidationExceptions.Add(new ValidationException($"Variable '{variable.Name}' hiding previously declared variable. Consider renaming", _iterator.Current.Line, _iterator.Current.Column, level: Level.Warning));
+                AddValidationException(new ValidationException($"Variable '{variable.Name}' hiding previously declared variable. Consider renaming", _iterator.Current.Line, _iterator.Current.Column, level: Level.Warning));
             }
         }
 
-        private bool TryGetVariable(string name, out KSVariable variable)
+        private bool TryGetDeclaration(string name, out IKSValue variable)
         {
-            LinkedListNode<Dictionary<string, KSVariable>> currentNode = _variableNode;
+            LinkedListNode<Dictionary<string, IKSValue>> currentNode = _declarationNode;
             variable = null;
 
             do
             {
-                if(currentNode.Value.TryGetValue(name, out KSVariable value))
+                if(currentNode.Value.TryGetValue(name, out IKSValue value))
                 {
                     variable =  value;
 
@@ -964,42 +1152,45 @@ namespace KrunkScriptParser.Models
             return false;
         }
 
-        private bool TryGetAction(string name, List<IKSValue> arguments, out KSAction action)
+        private void AddValidationException(ValidationException ex)
         {
-            LinkedListNode<Dictionary<string, KSAction>> currentNode = _actionNode;
-            action = null;
+            ValidationExceptions.Add(ex);
 
-            do
-            {
-                if (currentNode.Value.TryGetValue(name, out KSAction value))
-                {
-                    action = value;
-
-                    return true;
-                }
-
-                currentNode = currentNode.Previous;
-            } while (currentNode != null);
-
-            return false;
+            OnValidationError?.Invoke(this, ex);
         }
-
 
         private class TokenIterator
         {
             public Token Current => _token;
             private Token _token;
 
-            public TokenIterator(Token token)
+            public TokenIterator(IEnumerable<Token> tokens)
             {
-                _token = token;
+                Token prevToken = null;
+
+                foreach(Token token in tokens)
+                {
+                    if(_token == null)
+                    {
+                        _token = token;
+                    }
+
+                    if (prevToken != null)
+                    {
+                        prevToken.Next = token;
+                    }
+
+                    token.Prev = prevToken;
+
+                    prevToken = token;
+                }
             }
 
             public Token PeekNext()
             {
                 Token t = _token?.Next;
 
-                while (t.Type == TokenTypes.Comment)
+                while (t?.Type == TokenTypes.Comment)
                 {
                     t = t.Next;
                 }
@@ -1031,7 +1222,7 @@ namespace KrunkScriptParser.Models
 
                 _token = _token?.Next;
 
-                if(_token.Type == TokenTypes.Comment)
+                if(_token?.Type == TokenTypes.Comment)
                 {
                     return Next();
                 }

@@ -17,16 +17,15 @@ namespace KrunkScriptParser.Helpers
         private int _columnNumber = 1;
         private long _markPosition;
 
-        private HashSet<string> _actionKeywords = new HashSet<string> { "action" };
-        private HashSet<string> _modifierKeywords = new HashSet<string> { "public", "static" };
-
-        private HashSet<string> _typeKeywords = new HashSet<string> { "obj", "num", "str", "bool" };
-        private HashSet<string> _boolean = new HashSet<string> { "true", "false" };
-        private HashSet<char> _puctuation = new HashSet<char> { '(', ')', '[', ']', '{', '}', ',', ':', '.' };
-        private HashSet<char> _operators = new HashSet<char> { '+', '-', '*', '/', '<', '>', '!', '&', '|' };
-        private HashSet<string> _keywords = new HashSet<string> { "if", "while", "else", "for", "break", "continue", "return" };
-        private HashSet<string> _methods = new HashSet<string> { "addTo", "remove", "lengthOf", "notEmpty", "toStr", "toNum" };
-        private HashSet<string> _globalObjects = new HashSet<string> { "GAME", "UTILS" };
+        private static readonly HashSet<string> _actionKeywords = new HashSet<string> { "action" };
+        private static readonly HashSet<string> _modifierKeywords = new HashSet<string> { "public", "static" };
+        private static readonly HashSet<string> _typeKeywords = new HashSet<string> { "obj", "num", "str", "bool" };
+        private static readonly HashSet<string> _boolean = new HashSet<string> { "true", "false" };
+        private static readonly HashSet<char> _puctuation = new HashSet<char> { '(', ')', '[', ']', '{', '}', ',', ':', '.', '?' };
+        private static readonly HashSet<char> _operators = new HashSet<char> { '+', '-', '*', '/', '<', '>', '!', '&', '|' };
+        private static readonly HashSet<string> _keywords = new HashSet<string> { "if", "while", "else", "for", "break", "continue", "return" };
+        private static readonly HashSet<string> _methods = new HashSet<string> { "addTo", "remove", "lengthOf", "notEmpty", "toStr", "toNum" };
+        private static readonly HashSet<string> _globalObjects = new HashSet<string> { "GAME", "UTILS" };
 
 
         public TokenReader(string text) : base(new MemoryStream(Encoding.UTF8.GetBytes(text)))
@@ -88,6 +87,35 @@ namespace KrunkScriptParser.Helpers
             }
 
             return token;
+        }
+
+        public List<Token> ReadAllTokens()
+        {
+            List<Token> tokens = new List<Token>();
+
+            Token currentToken = null;
+            Token prevToken = null;
+
+            do
+            {
+                currentToken = ReadToken();
+
+                if (currentToken.Type != TokenTypes.Unknown)
+                {
+                    currentToken.Prev = prevToken;
+
+                    if (prevToken != null)
+                    {
+                        prevToken.Next = currentToken;
+                    }
+
+                    tokens.Add(currentToken);
+                }
+
+                prevToken = currentToken;
+            } while (currentToken.Type != TokenTypes.Unknown);
+
+            return tokens;
         }
 
         #region Helpers

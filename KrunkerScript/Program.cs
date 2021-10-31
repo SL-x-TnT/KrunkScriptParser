@@ -10,13 +10,18 @@ namespace KrunkScript
     {
         static void Main(string[] args)
         {
-            KrunkScriptValidator validator = new KrunkScriptValidator();
+            KSValidator validator = new KSValidator(File.ReadAllText("client.krnk"));
 
-            KSInfo info = validator.Validate(File.ReadAllText("client.krnk"));
+            validator.OnValidationError += Validator_OnValidationError;
 
-            Console.WriteLine(String.Join("\n", info.ValidationExceptions.Select(x => $"{x.Message}. ({x.LineNumber}:{x.ColumnNumber})")));
+            validator.Validate();
 
             Console.ReadLine();
+        }
+
+        private static void Validator_OnValidationError(object sender, ValidationException e)
+        {
+            Console.WriteLine(e);
         }
     }
 }
