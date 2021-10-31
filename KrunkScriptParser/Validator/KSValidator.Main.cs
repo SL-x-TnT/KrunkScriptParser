@@ -212,7 +212,7 @@ namespace KrunkScriptParser.Validator
 
             if (variable.Type.FullType != expression.CurrentType.FullType)
             {
-                AddValidationException($"Variable expected type '{variable.Type.FullType}'. Received '{expression.CurrentType.FullType}'", level: Level.Error);
+                AddValidationException($"Variable '{variable.Name}' expected type '{variable.Type.FullType}'. Received '{expression.CurrentType.FullType}'", level: Level.Error);
             }
 
             //Line terminator

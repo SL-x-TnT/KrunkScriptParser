@@ -408,8 +408,6 @@ namespace KrunkScriptParser.Validator
 
                     List<IKSValue> arguments = ParseArguments();
                     ValidateArguments(arguments, ksAction);
-
-
                 }
             }
 

@@ -10,7 +10,7 @@ namespace KrunkScriptParser.Validator
 {
     public partial class KSValidator
     {
-        private KSBlock ParseBlock(string blockType, IEnumerable<IKSValue> variables)
+        private KSBlock ParseBlock(string blockType, IEnumerable<IKSValue> variables = null)
         {
             KSBlock block = new KSBlock
             {
@@ -29,9 +29,12 @@ namespace KrunkScriptParser.Validator
             AddNewScopeLevel();
 
             //Add variables created in parameter/for statement
-            foreach(IKSValue v in variables)
+            if (variables != null)
             {
-                AddDeclaration(v);
+                foreach (IKSValue v in variables)
+                {
+                    AddDeclaration(v);
+                }
             }
 
             while(_token.Value != "}")
@@ -94,7 +97,36 @@ namespace KrunkScriptParser.Validator
             else if (_token.Type == TokenTypes.Type)
             {
                 //Handles terminator itself
-                return ParseVariableDeclaration();
+                returnValue = ParseVariableDeclaration();
+
+                AddDeclaration(returnValue);
+
+                return returnValue;
+            }
+            else if (_token.Type == TokenTypes.Name || _token.Value == "(") //Variable assignment
+            {
+                if(_token.Value == "(")
+                {
+                    Token next = _iterator.PeekNext();
+
+                    if(next.Type != TokenTypes.Type)
+                    {
+                        AddValidationException($"Expected a type cast. Received: {next.Value}");
+
+                        //Go to end of terminator
+                        _iterator.SkipUntil(TokenTypes.Terminator);
+                    }
+                }
+
+                //Variable assignment, including operators like +=
+                //TODO
+                returnValue = ParseExpression();
+            }
+            else
+            {
+                AddValidationException($"Unexpected value '{_token.Value}'");
+
+                _iterator.SkipUntil(TokenTypes.Terminator);
             }
 
             if(_token.Type != TokenTypes.Terminator)
@@ -110,11 +142,43 @@ namespace KrunkScriptParser.Validator
         }
 
         /// <summary>
-        /// Parses a block from a keyword (if, else if, else, while, for)
+        /// Parses a block from a keyword (if, else if, else)
         /// </summary>
         private KSBlock ParseConditionalBlock(string key)
         {
-            return null;
+            KSConditionalBlock block = new KSConditionalBlock();
+
+            _iterator.Next();
+
+            //else statement don't have conditions
+            if (key != "else")
+            {
+                if (_token.Value != "(")
+                {
+                    AddValidationException($"Missing start of '{key}' statement condition '('");
+
+                    _iterator.SkipUntil(new HashSet<string> { "{"});
+                }
+                else
+                {
+                    block.Condition = ParseExpression();
+
+                    if (_token.Value != ")")
+                    {
+                        AddValidationException($"Missing end of '{key}' statement condition ')'");
+                    }
+                    else
+                    {
+                        _iterator.Next();
+                    }
+                }
+
+                KSBlock ksBlock = ParseBlock(key);
+
+                block.Lines.AddRange(ksBlock.Lines);
+            }
+
+            return block;
         }
 
         private KSBlock ParseLoopBlock(string key)

@@ -19,17 +19,20 @@ namespace KrunkScriptParser.Validator
         {
             KSExpression expression = new KSExpression();
 
-            List<(KSType, bool)> forcedTypes = new List<(KSType, bool)>();
+            List<ForceConversion> forcedTypes = new List<ForceConversion>();
 
             while (_token.Type == TokenTypes.KeyMethod)
             {
                 switch (_token.Value)
                 {
                     case "toNum":
-                        forcedTypes.Add((KSType.Number, true));
+                        forcedTypes.Add(new ForceConversion(KSType.Number, true));
                         break;
                     case "toStr":
-                        forcedTypes.Add((KSType.String, true));
+                        forcedTypes.Add(new ForceConversion(KSType.String, true));
+                        break;
+                    case "lengthOf":
+                        forcedTypes.Add(new ForceConversion(KSType.LengthOf, false, KSType.Number));
                         break;
                     default:
                         throw new ValidationException($"Unexpected '{_token.Value}' statement", _token.Line, _token.Column);
@@ -37,6 +40,8 @@ namespace KrunkScriptParser.Validator
 
                 _iterator.Next();
             }
+
+            KSExpression innerExpression = null;
 
             if (_token.Type == TokenTypes.Punctuation)
             {
@@ -47,7 +52,7 @@ namespace KrunkScriptParser.Validator
 
                     if (_token.Type == TokenTypes.Type)
                     {
-                        forcedTypes.Add((ParseType(), false));
+                        forcedTypes.Add(new ForceConversion(ParseType(), false));
 
                         if (_token.Type != TokenTypes.Punctuation || _token.Value != ")")
                         {
@@ -60,15 +65,13 @@ namespace KrunkScriptParser.Validator
                     }
                     else //New Group
                     {
-                        KSExpression innerExpression = ParseExpression();
+                        innerExpression = ParseExpression();
 
                         expression.Value = innerExpression;
                         expression.Type = innerExpression.CurrentType;
 
                         ValidateForcedType(expression.CurrentType, forcedTypes);
-                        expression.ForcedType = forcedTypes.LastOrDefault().Item1;
-
-                        return expression;
+                        expression.ForcedType = forcedTypes.LastOrDefault()?.ReturnType;
                     }
                 }
             }
@@ -76,18 +79,23 @@ namespace KrunkScriptParser.Validator
             //Bool converts
             while (_token.Type == TokenTypes.Operator && _token.Value == "!")
             {
-                forcedTypes.Add((KSType.Bool, true));
+                forcedTypes.Add(new ForceConversion(KSType.Bool, true));
 
                 _iterator.Next();
             }
 
-            expression.Value = ParseGroup(null, forcedTypes);
+            expression.Value = ParseGroup(innerExpression, forcedTypes);
             expression.Type = expression.Value.Type;
 
             if (forcedTypes?.Count > 0)
             {
-                ValidateForcedType(expression.CurrentType, forcedTypes);
-                expression.ForcedType = forcedTypes.FirstOrDefault().Item1;
+                //ValidateForcedType(expression.CurrentType, forcedTypes);
+                expression.ForcedType = forcedTypes.FirstOrDefault()?.ReturnType;
+            }
+
+            if(_token.Value == ")")
+            {
+                _iterator.Next();
             }
 
             return expression;
@@ -98,12 +106,12 @@ namespace KrunkScriptParser.Validator
         /// Parses a group. Groups are values within parentheses
         /// </summary>
         /// <returns></returns>
-        private IKSValue ParseGroup(KSExpression value = null, List<(KSType, bool)> initialTypes = null)
+        private IKSValue ParseGroup(KSExpression value = null, List<ForceConversion> initialTypes = null)
         {
             IKSValue leftValue = value;
 
             KSGroup group = new KSGroup();
-            group.Type = value?.CurrentType ?? initialTypes?.LastOrDefault().Item1;
+            group.Type = value?.CurrentType ?? initialTypes?.LastOrDefault()?.ReturnType;
 
             if (value != null)
             {
@@ -136,7 +144,8 @@ namespace KrunkScriptParser.Validator
                     if (initialTypes != null && initialTypes.Count > 0)
                     {
                         ValidateForcedType(rightValue.Type, initialTypes);
-                        rightValue.Type = initialTypes.FirstOrDefault().Item1;
+                        rightValue.Type = initialTypes.FirstOrDefault().ReturnType;
+
                         initialTypes = null;
                     }
                 }
@@ -306,20 +315,26 @@ namespace KrunkScriptParser.Validator
         /// <summary>
         /// Handles validation of conversions/casts
         /// </summary>
-        private void ValidateForcedType(KSType currentType, List<(KSType, bool)> types)
+        private void ValidateForcedType(KSType currentType, List<ForceConversion> types)
         {
-            foreach ((KSType t, bool force) type in types.Reverse<(KSType, bool)>())
+            foreach (ForceConversion forceConversion in types.Reverse<ForceConversion>())
             {
-                //Was a cast, verify there's no type changes
-                if (!type.force && currentType != KSType.Any)
+                bool valid = forceConversion.IsValid(currentType);
+
+                if (!valid)
                 {
-                    if (currentType != type.t)
+                    if (forceConversion.Type == KSType.LengthOf)
                     {
-                        AddValidationException($"Invalid cast from '{currentType.FullType}' to '{type.t.FullType}'");
+                        AddValidationException($"lengthOf expects an array or '{KSType.String.FullType}'. Received: '{currentType.FullType}'");
+                    }
+                    else
+                    {
+                        AddValidationException($"Invalid cast from '{currentType.FullType}' to '{forceConversion.ReturnType.FullType}'");
                     }
                 }
 
-                currentType = type.t;
+
+                currentType = forceConversion.ReturnType;
             }
         }
     }
