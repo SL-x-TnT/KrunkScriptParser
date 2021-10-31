@@ -98,10 +98,6 @@ namespace KrunkScriptParser.Validator
                         _iterator.Next();
                     }
                 }
-                else if (variable.Type == KSType.Object)
-                {
-                    //Check to see if property
-                }
 
                 return variableName;
             }
@@ -341,7 +337,7 @@ namespace KrunkScriptParser.Validator
                         AddValidationException($"Variable '{_token.Value}' not defined in this scope");
 
                         //Attempt to fix
-                        _iterator.SkipUntil(new HashSet<string> { ";", ",", "}" });
+                        //_iterator.SkipUntil(new HashSet<string> { ";", ",", "}" });
 
                         return null;
                     }
@@ -362,7 +358,7 @@ namespace KrunkScriptParser.Validator
                         AddValidationException($"Action '{_token.Value}' is not defined");
 
                         //Attempt to fix
-                        _iterator.SkipUntil(new HashSet<string> { ";", ",", "}" });
+                        //_iterator.SkipUntil(new HashSet<string> { ";", ",", "}" });
 
                         return null;
                     }
@@ -383,7 +379,7 @@ namespace KrunkScriptParser.Validator
                         AddValidationException($"Variable '{_token.Value}' not defined in this scope");
 
                         //Attempt to fix
-                        _iterator.SkipUntil(new HashSet<string> { ";", ",", "}" });
+                        //_iterator.SkipUntil(new HashSet<string> { ";", ",", "}" });
 
                         return null;
                     }

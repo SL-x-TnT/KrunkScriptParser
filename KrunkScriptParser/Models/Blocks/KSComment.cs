@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 
 namespace KrunkScriptParser.Models.Blocks
 {
-    class Comment : IBlock
+    class KSComment : IKSValue
     {
         public string Text { get; private set; }
-
+        public KSType Type { get; set; }
     }
 }

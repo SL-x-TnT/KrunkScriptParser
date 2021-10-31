@@ -14,6 +14,7 @@ namespace KrunkScriptParser.Models.Blocks
 
         public string Name { get;  set; }
         public IKSValue Value { get; set; }
+        public bool WasCalled { get; set; }
 
         public KSVariable()
         {

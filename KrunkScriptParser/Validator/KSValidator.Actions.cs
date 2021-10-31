@@ -13,7 +13,74 @@ namespace KrunkScriptParser.Validator
     {
         private KSAction ParseAction()
         {
-            return null;
+            KSAction action = new KSAction();
+
+            if(_token.Value == "public")
+            {
+                //Need to verify it's a hook
+                _iterator.Next();
+            }
+
+            //Has a return type
+            if (_token.Type == TokenTypes.Type)
+            {
+                action.Type = ParseType();
+            }
+
+            if(_token.Type != TokenTypes.Action)
+            {
+                AddValidationException($"Expected 'action'. Received: {_token.Value}");
+            }
+            else
+            {
+                _iterator.Next();
+            }
+
+            if(_token.Type != TokenTypes.Name)
+            {
+                AddValidationException($"Missing action name");
+            }
+            else
+            {
+                action.Name = _token.Value;
+                _iterator.Next();
+            }
+
+            if(_token.Value != "(")
+            {
+                AddValidationException($"Expected start of parameters '('. Received: {_token.Value}", willThrow: true);
+            }
+            else
+            {
+                _iterator.Next();
+            }
+
+            action.Parameters = ParseParameters();
+
+            if(_token.Value != ")")
+            {
+                bool willThrow = _token.Value != "{";
+
+                AddValidationException($"Expected end of parameters ')'. Received: {_token.Value}", willThrow: willThrow);
+            }
+            else
+            {
+                _iterator.Next();
+            }
+
+            action.Block = ParseBlock("action", action.Parameters.Cast<IKSValue>());
+
+            if(!action.Block.Lines.Any(x => x is KSStatement statement && statement.IsReturn))
+            {
+                AddValidationException($"Action '{action.Name}' missing return statement");
+            }
+
+            foreach(KSStatement statement in action.GetInvalidReturns())
+            {
+                AddValidationException($"Invalid return type '{statement.Type.FullType}'. Expected: '{action.Type.FullType}'", statement.Line, statement.Column);
+            }
+            
+            return action;
         }
 
         /// <summary>
@@ -184,7 +251,11 @@ namespace KrunkScriptParser.Validator
                         level = Level.Warning;
                     }
 
-                    AddValidationException($"Expected type '{parameter.Type.FullType}' for parameter '{parameter.Type.FullType}'. Received '{argument.CurrentType.FullType}'", level: level);
+                    //Global actions can receive an "any" type without issues
+                    if(!action.Global && argument.Type != KSType.Any)
+                    {
+                        AddValidationException($"Expected type '{parameter.Type.FullType}' for parameter '{parameter.Type.FullType}'. Received '{argument.CurrentType.FullType}'", level: level);
+                    }
                 }
 
                 if (!parameter.MultiProp)

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace KrunkScriptParser.Models.Blocks
 {
-    public class KSType : IBlock
+    public class KSType
     {
         public string Name { get; set; }
         public bool IsArray { get; set; }

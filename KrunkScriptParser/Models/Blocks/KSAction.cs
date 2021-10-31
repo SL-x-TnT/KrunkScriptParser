@@ -9,9 +9,17 @@ namespace KrunkScriptParser.Models.Blocks
 {
     public class KSAction : IKSValue
     {
-        public string Text { get; set; }
-        public KSType Type { get; set; }
+        public string Name { get; set; }
+        public KSType Type { get; set; } = KSType.Void;
         public bool Global { get; set; } //Global actions can accept any parameter type
         public List<KSParameter> Parameters { get; set; } = new List<KSParameter>();
+        public KSBlock Block { get; set; }
+        public bool HasAReturn { get; set; }
+        public bool WasCalled { get; set; }
+
+        public IEnumerable<KSStatement> GetInvalidReturns()
+        {
+            return Block.GetReturnStatements().Where(x => x.Type != Type);
+        }
     }
 }

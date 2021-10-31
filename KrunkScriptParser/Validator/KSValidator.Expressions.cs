@@ -84,7 +84,7 @@ namespace KrunkScriptParser.Validator
             expression.Value = ParseGroup(null, forcedTypes);
             expression.Type = expression.Value.Type;
 
-            if (forcedTypes != null)
+            if (forcedTypes?.Count > 0)
             {
                 ValidateForcedType(expression.CurrentType, forcedTypes);
                 expression.ForcedType = forcedTypes.FirstOrDefault().Item1;

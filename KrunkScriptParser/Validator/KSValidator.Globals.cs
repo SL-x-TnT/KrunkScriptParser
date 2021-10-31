@@ -85,7 +85,8 @@ namespace KrunkScriptParser.Validator
                     {
                         Type = returnType,
                         Parameters = parameters,
-                        Text = name
+                        Name = name,
+                        Global = true
                     });
 
                     _iterator.Next(false);

@@ -78,8 +78,8 @@ namespace KrunkScriptParser.Validator
 
                         AddDeclaration(variable);
                     }
-                    else if (_token.Type == TokenTypes.Type && 
-                            (nextToken?.Type == TokenTypes.Action || nextToken?.Type == TokenTypes.Modifier)) //Actions
+                    else if (_token.Type == TokenTypes.Action || (_token.Type == TokenTypes.Type && 
+                            (nextToken?.Type == TokenTypes.Action || nextToken?.Type == TokenTypes.Modifier))) //Actions
                     {
                         KSAction action = ParseAction();
 
@@ -199,6 +199,8 @@ namespace KrunkScriptParser.Validator
                 AddValidationException($"Expected '='. Found: {_token.Value}");
 
                 _iterator.SkipLine();
+
+                return variable;
             }
 
             _iterator.Next();
@@ -257,12 +259,16 @@ namespace KrunkScriptParser.Validator
 
             if(variable is KSAction action)
             {
-                name = action.Text;
+                name = action.Name;
             }
             else if(variable is KSVariable v)
             {
                 name = v.Name;
                 alreadyDeclared = TryGetDeclaration(name, out IKSValue _);
+            }
+            else if (variable is KSParameter parameter)
+            {
+                name = parameter.Name;
             }
 
             if(!_declarationNode.Value.TryAdd(name, variable))
@@ -282,16 +288,25 @@ namespace KrunkScriptParser.Validator
         /// <summary>
         /// Attempts to find a declared action/variable starting from the current block level
         /// </summary>
-        private bool TryGetDeclaration(string name, out IKSValue variable)
+        private bool TryGetDeclaration(string name, out IKSValue ksValue)
         {
             LinkedListNode<Dictionary<string, IKSValue>> currentNode = _declarationNode;
-            variable = null;
+            ksValue = null;
 
             do
             {
                 if(currentNode.Value.TryGetValue(name, out IKSValue value))
                 {
-                    variable =  value;
+                    ksValue =  value;
+
+                    if(ksValue is KSAction action)
+                    {
+                        action.WasCalled = true;
+                    }
+                    else if (ksValue is KSVariable variable)
+                    {
+                        variable.WasCalled = true;
+                    }
 
                     return true;
                 }
@@ -316,6 +331,7 @@ namespace KrunkScriptParser.Validator
         /// </summary>
         private void RemoveScopeLevel()
         {
+            //Add info warning for declared variables that weren't used
             _declarations.RemoveLast();
             _declarationNode = _declarations.Last;
         }
@@ -330,12 +346,21 @@ namespace KrunkScriptParser.Validator
             OnValidationError?.Invoke(this, ex);
         }
 
-        private void AddValidationException(string message, int? line = null, int? column = null, Level level = Level.Error)
+        private void AddValidationException(string message, int? line = null, int? column = null, Level level = Level.Error, bool willThrow = false)
         {
             line = line ?? _token.Line;
             column = column ?? _token.Column;
 
-            AddValidationException(new ValidationException(message, line.Value, column.Value, level));
+            ValidationException error = new ValidationException(message, line.Value, column.Value, level);
+
+            if (willThrow)
+            {
+                throw error;
+            }
+            else
+            {
+                AddValidationException(error);
+            }
         }
 
         #endregion
