@@ -1,5 +1,5 @@
-﻿using KrunkScriptParser;
-using KrunkScriptParser.Models;
+﻿using KrunkScriptParser.Models;
+using KrunkScriptParser.Validator;
 using System;
 using System.IO;
 using System.Linq;

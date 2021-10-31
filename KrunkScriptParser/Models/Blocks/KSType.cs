@@ -54,6 +54,11 @@ namespace KrunkScriptParser.Models.Blocks
             return false;
         }
 
+        public override int GetHashCode()
+        {
+            return FullType.GetHashCode();
+        }
+
         private string _fullType = string.Empty;
 
         public static readonly KSType String = new KSType { Name = "str" }; 
