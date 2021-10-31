@@ -1,7 +1,6 @@
 # Client Script runs only on the client
 # KrunkScript Copyright (C) Yendis Entertainment Pty Ltd
 # 
-bool test = true && 1 != !1;
 
 obj consoleMenu_config = {
 	menuKey: "`",           # Key used to open menu

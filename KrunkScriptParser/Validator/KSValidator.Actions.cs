@@ -61,7 +61,7 @@ namespace KrunkScriptParser.Validator
                 {
                     if(_token.Value != "static")
                     {
-                        AddValidationException(new ValidationException($"Expected a type. Received modifier {_token.Value}", _token.Line, _token.Column));
+                        AddValidationException($"Expected a type. Received modifier {_token.Value}");
                     }
 
                     _iterator.Next();
@@ -114,12 +114,12 @@ namespace KrunkScriptParser.Validator
                         }
                         else
                         {
-                            AddValidationException(new ValidationException($"Spread notation '...' not supported", _token.Line, _token.Column));
+                            AddValidationException($"Spread notation '...' not supported");
                         }
                     }
                     else
                     {
-                        AddValidationException(new ValidationException($"Unexpected value '{multiProp}'", _token.Line, _token.Column));
+                        AddValidationException($"Unexpected value '{multiProp}'");
                     }
                 }
 
@@ -148,7 +148,7 @@ namespace KrunkScriptParser.Validator
 
             if (_token.Value != ")")
             {
-                AddValidationException(new ValidationException($"Expected ')'. Received '{_token.Value}'", _token.Line, _token.Column));
+                AddValidationException($"Expected ')'. Received '{_token.Value}'");
 
                 _iterator.SkipUntil(new HashSet<string> { ")", ";" });
             }
@@ -168,7 +168,7 @@ namespace KrunkScriptParser.Validator
             {
                 if (parameterIndex >= action.Parameters.Count)
                 {
-                    AddValidationException(new ValidationException($"Invalid argument count. Received {arguments.Count} and expected {action.Parameters.Count}", _token.Line, _token.Column));
+                    AddValidationException($"Invalid argument count. Received {arguments.Count} and expected {action.Parameters.Count}");
 
                     return;
                 }
@@ -184,7 +184,7 @@ namespace KrunkScriptParser.Validator
                         level = Level.Warning;
                     }
 
-                    AddValidationException(new ValidationException($"Expected type '{parameter.Type.FullType}' for parameter '{parameter.Type.FullType}'. Received '{argument.CurrentType.FullType}'", _token.Line, _token.Column, level: level));
+                    AddValidationException($"Expected type '{parameter.Type.FullType}' for parameter '{parameter.Type.FullType}'. Received '{argument.CurrentType.FullType}'", level: level);
                 }
 
                 if (!parameter.MultiProp)
@@ -195,7 +195,7 @@ namespace KrunkScriptParser.Validator
 
             if (parameterIndex < expected)
             {
-                AddValidationException(new ValidationException($"Invalid argument count. Received {arguments.Count} and expected {expected}", _token.Line, _token.Column));
+                AddValidationException($"Invalid argument count. Received {arguments.Count} and expected {expected}");
             }
         }
     }

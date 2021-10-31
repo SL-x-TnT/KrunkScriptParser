@@ -13,14 +13,12 @@ namespace KrunkScriptParser.Models
     {
         public int LineNumber { get; private set; }
         public int ColumnNumber { get; private set; }
-        public bool CanContinue { get; private set; }
         public Level Level { get; private set; }
 
-        public ValidationException(string text, int lineNumber, int columnNumber, bool canContinue = false, Level level = Level.Error) : base(text)
+        public ValidationException(string text, int lineNumber, int columnNumber, Level level = Level.Error) : base(text)
         {
             LineNumber = lineNumber;
             ColumnNumber = columnNumber;
-            CanContinue = canContinue;
             Level = level;
         }
 

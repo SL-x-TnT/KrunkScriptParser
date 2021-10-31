@@ -47,7 +47,7 @@ namespace KrunkScriptParser.Validator
             }
             catch(Exception ex)
             {
-                AddValidationException(new ValidationException($"Parser failed due to an exception. Message: {ex.Message}", _token.Line, _token.Column));
+                AddValidationException($"Parser failed due to an exception. Message: {ex.Message}");
 
                 return false;
             }
@@ -98,12 +98,7 @@ namespace KrunkScriptParser.Validator
                 {
                     AddValidationException(ex);
 
-                    if (!ex.CanContinue)
-                    {
-                        break;
-                    }
-
-                    _iterator.SkipLine();
+                    break;
                 }
             }
         }
@@ -182,7 +177,7 @@ namespace KrunkScriptParser.Validator
             //TODO: Nested array support
             if (variable.Type.ArrayDepth > 1)
             {
-                AddValidationException(new ValidationException($"Nested arrays currently not validated", _token.Line, _token.Column, level: Level.Info));
+                AddValidationException($"Nested arrays currently not validated", level: Level.Info);
 
                 _iterator.SkipUntil(TokenTypes.Terminator);
 
@@ -196,10 +191,14 @@ namespace KrunkScriptParser.Validator
             {
                 if (_token.Type == TokenTypes.Terminator)
                 {
-                    throw new ValidationException($"{variable.Name} must have a value", _token.Line, _token.Column, true);
+                    AddValidationException($"{variable.Name} must have a value");
+
+                    _iterator.SkipLine();
                 }
 
-                throw new ValidationException($"Expected '='. Found: {_token.Value}", _token.Line, _token.Column, true);
+                AddValidationException($"Expected '='. Found: {_token.Value}");
+
+                _iterator.SkipLine();
             }
 
             _iterator.Next();
@@ -211,13 +210,13 @@ namespace KrunkScriptParser.Validator
 
             if (variable.Type.FullType != expression.CurrentType.FullType)
             {
-                AddValidationException(new ValidationException($"Variable expected type '{variable.Type.FullType}'. Received '{expression.CurrentType.FullType}'", _token.Line, _token.Column, level: Level.Error));
+                AddValidationException($"Variable expected type '{variable.Type.FullType}'. Received '{expression.CurrentType.FullType}'", level: Level.Error);
             }
 
             //Line terminator
             if (_token.Type != TokenTypes.Terminator)
             {
-                AddValidationException(new ValidationException($"Expected ';'", _token.Prev.Line, _token.Prev.ColumnEnd));
+                AddValidationException($"Expected ';'", column: _token.Prev.ColumnEnd);
 
                 int line = _token.Line;
 
@@ -268,13 +267,15 @@ namespace KrunkScriptParser.Validator
 
             if(!_declarationNode.Value.TryAdd(name, variable))
             {
-                throw new ValidationException($"Variable/Action '{name}' has already been declared", _iterator.Current.Line, _iterator.Current.Column, true);
+                AddValidationException($"Variable/Action '{name}' has already been declared");
+
+                return;
             }
 
             //Variable name is declared higher up, but that's valid
             if(alreadyDeclared)
             {
-                AddValidationException(new ValidationException($"Variable '{name}' hiding previously declared variable", _iterator.Current.Line, _iterator.Current.Column, level: Level.Info));
+                AddValidationException($"Variable '{name}' hiding previously declared variable", level: Level.Info);
             }
         }
 
@@ -327,6 +328,14 @@ namespace KrunkScriptParser.Validator
             ValidationExceptions.Add(ex);
 
             OnValidationError?.Invoke(this, ex);
+        }
+
+        private void AddValidationException(string message, int? line = null, int? column = null, Level level = Level.Error)
+        {
+            line = line ?? _token.Line;
+            column = column ?? _token.Column;
+
+            AddValidationException(new ValidationException(message, line.Value, column.Value, level));
         }
 
         #endregion

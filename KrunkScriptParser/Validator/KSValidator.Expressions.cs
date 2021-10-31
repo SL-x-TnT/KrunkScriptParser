@@ -51,7 +51,7 @@ namespace KrunkScriptParser.Validator
 
                         if (_token.Type != TokenTypes.Punctuation || _token.Value != ")")
                         {
-                            AddValidationException(new ValidationException($"Missing ')'", _token.Line, _token.Column));
+                            AddValidationException($"Missing ')'");
                         }
                         else
                         {
@@ -119,7 +119,7 @@ namespace KrunkScriptParser.Validator
 
                 if (!String.IsNullOrEmpty(op) && (leftValue == null || !IsValidOperator(op)))
                 {
-                    AddValidationException(new ValidationException($"Invalid operator '{op}'", _token.Line, _token.Column));
+                    AddValidationException($"Invalid operator '{op}'");
                 }
 
                 IKSValue rightValue = null;
@@ -233,8 +233,7 @@ namespace KrunkScriptParser.Validator
 
                     if (leftType != rightType)
                     {
-                        AddValidationException(new ValidationException($"Mismatched types. Expected '{leftType.FullType}'. Received {leftType.FullType} {op} {rightType.FullType}",
-                            _token.Line, _token.Column));
+                        AddValidationException($"Mismatched types. Expected '{leftType.FullType}'. Received {leftType.FullType} {op} {rightType.FullType}");
                     }
                 }
 
@@ -245,7 +244,7 @@ namespace KrunkScriptParser.Validator
                         case "+":
                             if (rightType != KSType.String && rightType != KSType.Number)
                             {
-                                AddValidationException(new ValidationException($"Expected '{KSType.String.FullType}' or '{KSType.Number.FullType}' with operator '{op}'. Received {leftType.FullType} {op} {rightType.FullType}", _token.Line, _token.Column));
+                                AddValidationException($"Expected '{KSType.String.FullType}' or '{KSType.Number.FullType}' with operator '{op}'. Received {leftType.FullType} {op} {rightType.FullType}");
                             }
 
                             break;
@@ -259,14 +258,14 @@ namespace KrunkScriptParser.Validator
                         case ">=":
                             if (rightType != KSType.Number)
                             {
-                                AddValidationException(new ValidationException($"Expected '{KSType.Number.FullType}' with operator '{op}'. Received {leftType.FullType} {op} {rightType.FullType}", _token.Line, _token.Column));
+                                AddValidationException($"Expected '{KSType.Number.FullType}' with operator '{op}'. Received {leftType.FullType} {op} {rightType.FullType}");
                             }
                             break;
                         case "&&":
                         case "||":
                             if (rightType != KSType.Bool)
                             {
-                                AddValidationException(new ValidationException($"Expected '{KSType.Bool.FullType}' with operator '{op}'. Received {leftType.FullType} {op} {rightType.FullType}", _token.Line, _token.Column));
+                                AddValidationException($"Expected '{KSType.Bool.FullType}' with operator '{op}'. Received {leftType.FullType} {op} {rightType.FullType}");
                             }
                             break;
                     }
@@ -316,7 +315,7 @@ namespace KrunkScriptParser.Validator
                 {
                     if (currentType != type.t)
                     {
-                        AddValidationException(new ValidationException($"Invalid cast from '{currentType.FullType}' to '{type.t.FullType}'", _token.Line, _token.Column));
+                        AddValidationException($"Invalid cast from '{currentType.FullType}' to '{type.t.FullType}'");
                     }
                 }
 

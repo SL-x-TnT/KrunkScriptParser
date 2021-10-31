@@ -80,7 +80,7 @@ namespace KrunkScriptParser.Validator
                             if (ksVariable.Variable.Type.IsArray && ksVariable.Variable.Type.ArrayDepth > 1)
                             {
                                 //TODO: Nested arrays
-                                AddValidationException(new ValidationException($"Nested arrays currently not validated", _token.Line, _token.Column, level: Level.Info));
+                                AddValidationException($"Nested arrays currently not validated", level: Level.Info);
 
                                 _iterator.SkipUntil(new HashSet<string> { ",", "}", ";" });
                             }
@@ -92,7 +92,7 @@ namespace KrunkScriptParser.Validator
 
                         if (indexer.Type != KSType.Number)
                         {
-                            AddValidationException(new ValidationException($"Expected 'num' found '{indexer.Type}'", _token.Line, _token.Column));
+                            AddValidationException($"Expected 'num' found '{indexer.Type}'");
                         }
 
                         _iterator.Next();
@@ -158,7 +158,7 @@ namespace KrunkScriptParser.Validator
 
                 if (!ksObject.Properties.TryAdd(name, expression))
                 {
-                    AddValidationException(new ValidationException($"Property '{name}' already exists", _token.Line, _token.Column));
+                    AddValidationException($"Property '{name}' already exists");
 
                     _iterator.SkipUntil(TokenTypes.Name | TokenTypes.Punctuation); //Skip until the next name, comma, or }
                 }
@@ -176,7 +176,7 @@ namespace KrunkScriptParser.Validator
                     }
                     else if (_token.Value != "}") //A missing comma at the end is no issue
                     {
-                        AddValidationException(new ValidationException($"Unexpected value '{_token.Value}", _token.Line, _token.ColumnEnd));
+                        AddValidationException($"Unexpected value '{_token.Value}", column: _token.ColumnEnd);
                     }
                 }
                 else
@@ -184,7 +184,7 @@ namespace KrunkScriptParser.Validator
                     //We were missing a comma
                     if (_token.Type == TokenTypes.Name)
                     {
-                        AddValidationException(new ValidationException($"Missing ','", _token.Prev.Line, _token.Prev.ColumnEnd));
+                        AddValidationException($"Missing ','", column: _token.ColumnEnd);
                     }
                     else if (_token.Type != TokenTypes.Terminator)
                     {
@@ -219,7 +219,7 @@ namespace KrunkScriptParser.Validator
                     {
                         _iterator.Next();
 
-                        AddValidationException(new ValidationException($"Nested arrays currently not validated", _token.Line, _token.Column, level: Level.Info));
+                        AddValidationException($"Nested arrays currently not validated", level: Level.Info);
 
                         int nestedDepth = 1;
 
@@ -262,7 +262,7 @@ namespace KrunkScriptParser.Validator
 
                 if (ksArray.Type != value.Type)
                 {
-                    AddValidationException(new ValidationException($"Expected type '{ksArray.Type.Name}'. Received '{value.Type.FullType}'", _token.Line, _token.Column, level: Level.Error));
+                    AddValidationException($"Expected type '{ksArray.Type.Name}'. Received '{value.Type.FullType}'", level: Level.Error);
                 }
 
                 ksArray.Values.Add(value);
@@ -332,13 +332,13 @@ namespace KrunkScriptParser.Validator
             {
                 if (isAction && isObj)
                 {
-                    AddValidationException(new ValidationException($"Action properties on objects currently not supported", initialToken.Line, initialToken.Column));
+                    AddValidationException($"Action properties on objects currently not supported");
                 }
                 else if (isObj)
                 {
                     if (!TryGetDeclaration(initialToken.Value, out IKSValue value))
                     {
-                        AddValidationException(new ValidationException($"Variable '{_token.Value}' not defined in this scope", _token.Line, _token.Column));
+                        AddValidationException($"Variable '{_token.Value}' not defined in this scope");
 
                         //Attempt to fix
                         _iterator.SkipUntil(new HashSet<string> { ";", ",", "}" });
@@ -359,7 +359,7 @@ namespace KrunkScriptParser.Validator
 
                     if (!TryGetDeclaration(initialToken.Value, out foundAction))
                     {
-                        AddValidationException(new ValidationException($"Action '{_token.Value}' is not defined", _token.Line, _token.Column));
+                        AddValidationException($"Action '{_token.Value}' is not defined");
 
                         //Attempt to fix
                         _iterator.SkipUntil(new HashSet<string> { ";", ",", "}" });
@@ -369,7 +369,7 @@ namespace KrunkScriptParser.Validator
 
                     if (!(foundAction is KSAction))
                     {
-                        AddValidationException(new ValidationException($"'{_token.Value}' is not an action", _token.Line, _token.Column));
+                        AddValidationException($"'{_token.Value}' is not an action");
 
                         return null;
                     }
@@ -380,7 +380,7 @@ namespace KrunkScriptParser.Validator
                 {
                     if (!TryGetDeclaration(initialToken.Value, out IKSValue value))
                     {
-                        AddValidationException(new ValidationException($"Variable '{_token.Value}' not defined in this scope", _token.Line, _token.Column));
+                        AddValidationException($"Variable '{_token.Value}' not defined in this scope");
 
                         //Attempt to fix
                         _iterator.SkipUntil(new HashSet<string> { ";", ",", "}" });
@@ -395,7 +395,7 @@ namespace KrunkScriptParser.Validator
             {
                 if (!_krunkerGlobalVariables.TryGetValue(name, out IKSValue v))
                 {
-                    AddValidationException(new ValidationException($"Global '{name}' is not defined", _token.Line, _token.Column));
+                    AddValidationException($"Global '{name}' is not defined");
 
                     return null;
                 }
