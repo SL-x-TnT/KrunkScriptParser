@@ -11,6 +11,11 @@ namespace KrunkScriptParser.Validator
 {
     public partial class KSValidator
     {
+        private KSAction ParseAction()
+        {
+            return null;
+        }
+
         /// <summary>
         /// Parses out the arguments sent to an action
         /// </summary>

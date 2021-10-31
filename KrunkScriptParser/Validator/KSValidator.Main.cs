@@ -67,24 +67,31 @@ namespace KrunkScriptParser.Validator
             {
                 try
                 {
-                    //Only variables
-                    if (_token.Type == TokenTypes.Type && _iterator.PeekNext()?.Type != TokenTypes.Action)
+                    Token nextToken = _iterator.PeekNext();
+
+                    //Only variable declarations
+                    if (_token.Type == TokenTypes.Type && 
+                            nextToken?.Type != TokenTypes.Action && 
+                            nextToken?.Type != TokenTypes.Modifier)
                     {
                         KSVariable variable = ParseVariableDeclaration();
 
-                        AddVariable(variable);
-
-                        continue;
+                        AddDeclaration(variable);
                     }
-
-                    if (_token.Type == TokenTypes.Type && _iterator.PeekNext()?.Type == TokenTypes.Action) //Function with return type
+                    else if (_token.Type == TokenTypes.Type && 
+                            (nextToken?.Type == TokenTypes.Action || nextToken?.Type == TokenTypes.Modifier)) //Actions
                     {
+                        KSAction action = ParseAction();
 
+                        AddDeclaration(action);
                     }
-
-                    if (_token.Type == TokenTypes.Terminator || (_token.Type == TokenTypes.Punctuation && _token.Value == "}"))
+                    else if (_token.Type == TokenTypes.Terminator ||_token.Value == "}") //Might be worth it to verify nothing was missed
                     {
                         _iterator.Next();
+                    }
+                    else
+                    {
+                        throw new ValidationException($"Unexpected input {_token.Value}. Expecting variable declaration or action", _token.Line, _token.Column);
                     }
                 }
                 catch (ValidationException ex)
@@ -242,21 +249,32 @@ namespace KrunkScriptParser.Validator
         }
 
         /// <summary>
-        /// Adds a variable to the current block level
+        /// Adds a variable/action to the current block level
         /// </summary>
-        private void AddVariable(KSVariable variable)
+        private void AddDeclaration(IKSValue variable)
         {
-            bool alreadyDeclared = TryGetDeclaration(variable.Name, out IKSValue _);
+            string name = String.Empty;
+            bool alreadyDeclared = false;
 
-            if(!_declarationNode.Value.TryAdd(variable.Name, variable))
+            if(variable is KSAction action)
             {
-                throw new ValidationException($"'{variable.Name}' has already been declared", _iterator.Current.Line, _iterator.Current.Column, true);
+                name = action.Text;
+            }
+            else if(variable is KSVariable v)
+            {
+                name = v.Name;
+                alreadyDeclared = TryGetDeclaration(name, out IKSValue _);
+            }
+
+            if(!_declarationNode.Value.TryAdd(name, variable))
+            {
+                throw new ValidationException($"Variable/Action '{name}' has already been declared", _iterator.Current.Line, _iterator.Current.Column, true);
             }
 
             //Variable name is declared higher up, but that's valid
             if(alreadyDeclared)
             {
-                AddValidationException(new ValidationException($"Variable '{variable.Name}' hiding previously declared variable", _iterator.Current.Line, _iterator.Current.Column, level: Level.Info));
+                AddValidationException(new ValidationException($"Variable '{name}' hiding previously declared variable", _iterator.Current.Line, _iterator.Current.Column, level: Level.Info));
             }
         }
 
@@ -281,6 +299,24 @@ namespace KrunkScriptParser.Validator
             } while (currentNode != null);
 
             return false;
+        }
+
+        /// <summary>
+        /// Adds a new scope level for variable declarations. Called when entering a new block (actions, if, else, for, while, etc)
+        /// </summary>
+        private void AddNewScopeLevel()
+        {
+            _declarationNode = new LinkedListNode<Dictionary<string, IKSValue>>(new Dictionary<string, IKSValue>());
+            _declarations.AddLast(_declarationNode);
+        }
+
+        /// <summary>
+        /// Removes the last scope level when exiting a block (actions, if, else, for, while, etc)
+        /// </summary>
+        private void RemoveScopeLevel()
+        {
+            _declarations.RemoveLast();
+            _declarationNode = _declarations.Last;
         }
 
         /// <summary>
@@ -373,6 +409,19 @@ namespace KrunkScriptParser.Validator
                 _token = _token?.Prev;
 
                 return _token;
+            }
+            
+            public void ReturnTo(Token token)
+            {
+                if(_token == token)
+                {
+                    return;
+                }
+
+                while(Prev() != token)
+                {
+                    
+                }
             }
 
             public Token SkipLine()

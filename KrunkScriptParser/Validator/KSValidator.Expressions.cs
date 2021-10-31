@@ -115,13 +115,7 @@ namespace KrunkScriptParser.Validator
                 _token.Value != "," &&                     //Object property ends
                 _token.Value != "}")                       //Object property ends
             {
-                string op = String.Empty;
-
-                while (_token.Type == TokenTypes.Operator && (String.IsNullOrEmpty(op) || (_token.Value == _token.Prev.Value)))
-                {
-                    op += _token.Value;
-                    _iterator.Next();
-                }
+                string op = ParseOperator();
 
                 if (!String.IsNullOrEmpty(op) && (leftValue == null || !IsValidOperator(op)))
                 {
@@ -158,6 +152,10 @@ namespace KrunkScriptParser.Validator
                 {
                     group.Type = rightValue.Type;
                 }
+                else if(op == "==") //Equality, so the group type should be a bool
+                {
+                    group.Type = KSType.Bool;
+                }
 
                 leftValue = rightValue;
 
@@ -183,11 +181,15 @@ namespace KrunkScriptParser.Validator
                     case ">":
                     case "<<":
                     case ">>":
+                    case "<=":
+                    case ">=":
                     case ">>>":
                     case "|":
                     case "&":
                     case "||":
                     case "&&":
+                    case "==":
+                    case "!=":
                         return true;
                 }
 
@@ -212,6 +214,23 @@ namespace KrunkScriptParser.Validator
 
                 if (leftValue != null)
                 {
+                    //PATCH: Verify the right group isn't an operation that returns a bool
+                    if (op == "&&" || op == "||")
+                    {
+                        Token currentToken = _token;
+
+                        _iterator.Next();
+
+                        string tempOp = ParseOperator();
+
+                        _iterator.ReturnTo(currentToken);
+
+                        if(OperatorReturnsBool(tempOp))
+                        {
+                            rightType = KSType.Bool;
+                        }
+                    }
+
                     if (leftType != rightType)
                     {
                         AddValidationException(new ValidationException($"Mismatched types. Expected '{leftType.FullType}'. Received {leftType.FullType} {op} {rightType.FullType}",
@@ -236,14 +255,53 @@ namespace KrunkScriptParser.Validator
                         case "<<":
                         case ">>":
                         case "<<<":
+                        case "<=":
+                        case ">=":
                             if (rightType != KSType.Number)
                             {
                                 AddValidationException(new ValidationException($"Expected '{KSType.Number.FullType}' with operator '{op}'. Received {leftType.FullType} {op} {rightType.FullType}", _token.Line, _token.Column));
                             }
                             break;
+                        case "&&":
+                        case "||":
+                            if (rightType != KSType.Bool)
+                            {
+                                AddValidationException(new ValidationException($"Expected '{KSType.Bool.FullType}' with operator '{op}'. Received {leftType.FullType} {op} {rightType.FullType}", _token.Line, _token.Column));
+                            }
+                            break;
                     }
                 }
             }
+
+            bool OperatorReturnsBool(string op)
+            {
+                switch(op)
+                {
+                    case "<":
+                    case ">":
+                    case "<=":
+                    case ">=":
+                    case "==":
+                    case "!=":
+                        return true;
+                }
+
+                return false;
+            }
+        }
+
+        private string ParseOperator()
+        {
+            string op = String.Empty;
+
+            // ! may be used to convert a type to a bool, but it shouldn't be at the end of an operator
+            while ((_token.Type == TokenTypes.Operator || _token.Type == TokenTypes.Assign) && (String.IsNullOrEmpty(op) || _token.Value != "!"))
+            {
+                op += _token.Value;
+                _iterator.Next();
+            }
+
+            return op;
         }
 
         /// <summary>
@@ -258,13 +316,12 @@ namespace KrunkScriptParser.Validator
                 {
                     if (currentType != type.t)
                     {
-                        AddValidationException(new ValidationException($"Invalid cast to '{type.t.FullType}'", _token.Line, _token.Column));
+                        AddValidationException(new ValidationException($"Invalid cast from '{currentType.FullType}' to '{type.t.FullType}'", _token.Line, _token.Column));
                     }
                 }
 
                 currentType = type.t;
             }
         }
-
     }
 }

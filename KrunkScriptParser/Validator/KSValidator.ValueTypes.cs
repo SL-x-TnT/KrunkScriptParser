@@ -338,7 +338,7 @@ namespace KrunkScriptParser.Validator
                 {
                     if (!TryGetDeclaration(initialToken.Value, out IKSValue value))
                     {
-                        AddValidationException(new ValidationException($"Variable '{_token.Value}' not defined", _token.Line, _token.Column));
+                        AddValidationException(new ValidationException($"Variable '{_token.Value}' not defined in this scope", _token.Line, _token.Column));
 
                         //Attempt to fix
                         _iterator.SkipUntil(new HashSet<string> { ";", ",", "}" });
@@ -380,7 +380,7 @@ namespace KrunkScriptParser.Validator
                 {
                     if (!TryGetDeclaration(initialToken.Value, out IKSValue value))
                     {
-                        AddValidationException(new ValidationException($"Variable '{_token.Value}' not defined", _token.Line, _token.Column));
+                        AddValidationException(new ValidationException($"Variable '{_token.Value}' not defined in this scope", _token.Line, _token.Column));
 
                         //Attempt to fix
                         _iterator.SkipUntil(new HashSet<string> { ";", ",", "}" });
