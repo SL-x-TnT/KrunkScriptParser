@@ -93,9 +93,11 @@ namespace KrunkScriptParser.Validator
         {
             List<IKSValue> values = new List<IKSValue>();
 
+            _iterator.Next();
+
             while (_token.Value != ")" || _token.Value == ",")
             {
-                values.Add(ParseExpression());
+                values.Add(ParseExpressionNew());
 
                 if (_token.Value == ")")
                 {

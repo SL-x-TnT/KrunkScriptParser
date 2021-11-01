@@ -6,12 +6,14 @@ using System.Threading.Tasks;
 
 namespace KrunkScriptParser.Models.Blocks
 {
-    class ForceConversion
+    class ForceConversion : IExpressionItem
     {
-        public KSType Type { get; set; }
         public bool IsConvert { get; set; }
         public KSType ReturnType { get; set; }
-        
+
+        public override int Priority => IExpressionItem.MaxPriority - 1;
+        public override bool HasType => true;
+
         public ForceConversion(KSType type, bool isConvert, KSType returnType = null)
         {
             Type = type;

@@ -206,7 +206,7 @@ namespace KrunkScriptParser.Validator
             _iterator.Next();
 
             //Expecting a value
-            KSExpression expression = ParseExpression();
+            KSExpression expression = ParseExpressionNew();
 
             variable.Value = expression;
 

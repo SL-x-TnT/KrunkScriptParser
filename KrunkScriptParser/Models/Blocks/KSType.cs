@@ -79,5 +79,6 @@ namespace KrunkScriptParser.Models.Blocks
         internal static readonly KSType Action = new KSType { Name = "action" };
         internal static readonly KSType LengthOf = new KSType { Name = "lengthOf" };
         internal static readonly KSType NotEmpty = new KSType { Name = "notEmpty" };
+        internal static readonly KSType Unknown = new KSType { Name = "unknown" };
     }
 }

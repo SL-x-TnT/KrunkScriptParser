@@ -39,12 +39,14 @@ namespace KrunkScriptParser.Validator
             }
 
             int conditionalState = int.MaxValue; //0, 1, 2 = if, else if, else
+            Token currentToken = _token;
 
             while(_token.Value != "}")
             {
                 IKSValue line = ParseLine();
 
-                if(line == null)
+                //If we're not getting anywhere, throw an exception
+                if(currentToken == _token)
                 {
                     AddValidationException("Failed to parse line", willThrow: true);
                 }
@@ -74,7 +76,8 @@ namespace KrunkScriptParser.Validator
                     conditionalState = int.MaxValue;
                 }
 
-                block.Lines.Add(line);
+                block.Lines.Add(line); 
+                currentToken = _token;
             }
 
             RemoveScopeLevel();
@@ -98,6 +101,7 @@ namespace KrunkScriptParser.Validator
                 while(_iterator.Next().Type == TokenTypes.Keyword)
                 {
                     key += $" {_token.Value}";
+                    currentToken = _token;
                 }
 
                 _iterator.ReturnTo(currentToken);
@@ -117,7 +121,7 @@ namespace KrunkScriptParser.Validator
                         Statement = "return",
                         Line = _token.Line,
                         Column = _token.Column,
-                        Value = ParseExpression(),
+                        Value = ParseExpressionNew(),
                     };
                 }
                 else if (IsConditionalBlock(key)) //Handles if/else if/else
@@ -155,7 +159,9 @@ namespace KrunkScriptParser.Validator
 
                 //Variable assignment, including operators like +=
                 //TODO
-                returnValue = ParseExpression();
+                _iterator.SkipUntil(TokenTypes.Terminator);
+
+                //returnValue = ParseExpression();
             }
             else
             {
@@ -203,7 +209,7 @@ namespace KrunkScriptParser.Validator
                 {
                     _iterator.Next();
 
-                    block.Condition = ParseExpression();
+                    block.Condition = ParseExpressionNew();
 
                     if (_token.Value != ")")
                     {

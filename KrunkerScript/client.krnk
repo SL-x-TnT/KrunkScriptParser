@@ -2,7 +2,10 @@
 # KrunkScript Copyright (C) Yendis Entertainment Pty Ltd
 # 
 
-bool a = notEmpty "";
+#bool test = GAME.PLAYERS.findByID("1") == "1";
+
+num a = 1;
+num test = 1 + -a;
 
 #str test = (num)(toStr (GAME.PLAYERS.findByID("1")) + toNum "s");
 #str g = (num)(toStr (1) + toStr 1);

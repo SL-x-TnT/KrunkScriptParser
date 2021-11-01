@@ -21,7 +21,13 @@ namespace KrunkScript
 
         private static void Validator_OnValidationError(object sender, ValidationException e)
         {
+            ConsoleColor prevColor = Console.ForegroundColor;
+
+            Console.ForegroundColor = e.Level == Level.Error ? ConsoleColor.Red : 
+                e.Level == Level.Warning ? ConsoleColor.Yellow : ConsoleColor.Gray;
             Console.WriteLine(e);
+
+            Console.ForegroundColor = prevColor;
         }
     }
 }

@@ -107,12 +107,11 @@ namespace KrunkScriptParser.Validator
             }
             else
             {
-                throw new ValidationException($"Expected value expression. Found: {_token.Value}", _token.Line, _token.Column);
+                AddValidationException($"Expected value. Found: {_token.Value}", willThrow: true);
+
+
+                return null;
             }
-
-            throw new Exception("Fix this");
-
-            
         }
 
         private KSObject ParseObjectProperties(KSVariable variable)
@@ -143,11 +142,12 @@ namespace KrunkScriptParser.Validator
                 //Expecting :
                 if (_token.Type != TokenTypes.Punctuation || _token.Value != ":")
                 {
-                    throw new ValidationException($"Expected ':' found '='", _token.Line, _token.Column);
+                    AddValidationException($"Expected ':' found '{_token.Value}'", willThrow: true);
                 }
 
                 _iterator.Next();
 
+                //KSExpression expression = ParseExpression(depth: depth + 1);
                 KSExpression expression = ParseExpression(depth: depth + 1);
 
                 expression.ForcedType = KSType.Any;
@@ -184,7 +184,7 @@ namespace KrunkScriptParser.Validator
                     }
                     else if (_token.Type != TokenTypes.Terminator)
                     {
-                        throw new ValidationException($"Unexpected value '{_token.Value}'", _token.Line, _token.Column);
+                        AddValidationException($"Unexpected value '{_token.Value}'", willThrow: true);
                     }
                 }
             }
@@ -371,6 +371,8 @@ namespace KrunkScriptParser.Validator
                     }
 
                     ValidateArguments(arguments, foundAction as KSAction);
+
+                    variable = foundAction;
                 }
                 else //Normal variable
                 {
@@ -402,7 +404,7 @@ namespace KrunkScriptParser.Validator
                 }
                 else if (v is KSAction ksAction)
                 {
-                    _iterator.Next();
+                    //_iterator.Next();
 
                     variable = ksAction;
 
