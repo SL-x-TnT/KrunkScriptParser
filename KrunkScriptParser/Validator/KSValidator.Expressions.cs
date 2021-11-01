@@ -21,6 +21,9 @@ namespace KrunkScriptParser.Validator
 
             List<ForceConversion> forcedTypes = new List<ForceConversion>();
 
+            //Determines whether or not the value needs to not be converted
+            bool useForcedTypes = true;
+
             while (_token.Type == TokenTypes.KeyMethod)
             {
                 switch (_token.Value)
@@ -34,9 +37,14 @@ namespace KrunkScriptParser.Validator
                     case "lengthOf":
                         forcedTypes.Add(new ForceConversion(KSType.LengthOf, false, KSType.Number));
                         break;
+                    case "notEmpty":
+                        forcedTypes.Add(new ForceConversion(KSType.NotEmpty, false, KSType.Bool));
+                        break;
                     default:
                         throw new ValidationException($"Unexpected '{_token.Value}' statement", _token.Line, _token.Column);
                 }
+
+                useForcedTypes = false;
 
                 _iterator.Next();
             }
@@ -45,6 +53,8 @@ namespace KrunkScriptParser.Validator
 
             if (_token.Type == TokenTypes.Punctuation)
             {
+                useForcedTypes = true;
+
                 while (_token.Value == "(")
                 {
                     //Check to see if it's a cast
@@ -87,7 +97,7 @@ namespace KrunkScriptParser.Validator
             expression.Value = ParseGroup(innerExpression, forcedTypes);
             expression.Type = expression.Value.Type;
 
-            if (forcedTypes?.Count > 0)
+            if (useForcedTypes && forcedTypes?.Count > 0)
             {
                 //ValidateForcedType(expression.CurrentType, forcedTypes);
                 expression.ForcedType = forcedTypes.FirstOrDefault()?.ReturnType;
@@ -99,7 +109,6 @@ namespace KrunkScriptParser.Validator
             }
 
             return expression;
-
         }
 
         /// <summary>
@@ -167,17 +176,12 @@ namespace KrunkScriptParser.Validator
                 {
                     group.Type = rightValue.Type;
                 }
-                else if(op == "==") //Equality, so the group type should be a bool
+                else if(OperatorReturnsBool(op)) //Equality, so the group type should be a bool
                 {
                     group.Type = KSType.Bool;
                 }
 
                 leftValue = rightValue;
-
-                if (_token.Type != TokenTypes.Terminator && _token.Type != TokenTypes.Operator)
-                {
-                }
-
             }
 
             return group;
@@ -330,7 +334,11 @@ namespace KrunkScriptParser.Validator
                 {
                     if (forceConversion.Type == KSType.LengthOf)
                     {
-                        AddValidationException($"lengthOf expects an array or '{KSType.String.FullType}'. Received: '{currentType.FullType}'");
+                        AddValidationException($"lengthOf expects an array, '{KSType.String.FullType}', or '{KSType.Any}'. Received '{currentType.FullType}'");
+                    }
+                    else if (forceConversion.Type == KSType.NotEmpty)
+                    {
+                        AddValidationException($"notEmpty expects an '{KSType.Object}' or '{KSType.Any}'. Received '{currentType.FullType}'");
                     }
                     else
                     {

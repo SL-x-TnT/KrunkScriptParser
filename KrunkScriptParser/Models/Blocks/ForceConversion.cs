@@ -23,7 +23,16 @@ namespace KrunkScriptParser.Models.Blocks
         {
             if (Type == KSType.LengthOf)
             {
-                if(otherType.IsArray || otherType == KSType.String)
+                if(otherType.IsArray || otherType == KSType.String || otherType == KSType.Any)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+            else if (Type == KSType.NotEmpty)
+            {
+                if(otherType == KSType.Any || otherType == KSType.Object)
                 {
                     return true;
                 }

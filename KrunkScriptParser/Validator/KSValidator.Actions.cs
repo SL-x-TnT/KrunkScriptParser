@@ -15,6 +15,9 @@ namespace KrunkScriptParser.Validator
         {
             KSAction action = new KSAction();
 
+            int line = _token.Line;
+            int column = _token.Column;
+
             if(_token.Value == "public")
             {
                 //Need to verify it's a hook
@@ -29,7 +32,7 @@ namespace KrunkScriptParser.Validator
 
             if(_token.Type != TokenTypes.Action)
             {
-                AddValidationException($"Expected 'action'. Received: {_token.Value}");
+                AddValidationException($"Expected 'action'. Received '{_token.Value}'");
             }
             else
             {
@@ -48,7 +51,7 @@ namespace KrunkScriptParser.Validator
 
             if(_token.Value != "(")
             {
-                AddValidationException($"Expected start of parameters '('. Received: {_token.Value}", willThrow: true);
+                AddValidationException($"Expected start of parameters '('. Received '{_token.Value}'", willThrow: true);
             }
             else
             {
@@ -61,7 +64,7 @@ namespace KrunkScriptParser.Validator
             {
                 bool willThrow = _token.Value != "{";
 
-                AddValidationException($"Expected end of parameters ')'. Received: {_token.Value}", willThrow: willThrow);
+                AddValidationException($"Expected end of parameters ')'. Received '{_token.Value}'", willThrow: willThrow);
             }
             else
             {
@@ -70,9 +73,9 @@ namespace KrunkScriptParser.Validator
 
             action.Block = ParseBlock("action", action.Parameters.Cast<IKSValue>());
 
-            if(!action.Block.Lines.Any(x => x is KSStatement statement && statement.IsReturn))
+            if(action.Type != KSType.Void && !action.Block.Lines.Any(x => x is KSStatement statement && statement.IsReturn))
             {
-                AddValidationException($"Action '{action.Name}' missing return statement");
+                AddValidationException($"Action '{action.Name}' missing return statement", line, column);
             }
 
             foreach(KSStatement statement in action.GetInvalidReturns())
@@ -246,11 +249,11 @@ namespace KrunkScriptParser.Validator
                 {
                     if(action.Global)
                     {
-                        AddValidationException($"Global method expected type '{parameter.Type.FullType}' for parameter '{parameter.Name}' Received '{argument.CurrentType.FullType}'. Will still pass validation", level: Level.Warning);
+                        AddValidationException($"Global method '{action.Name}' expected type '{parameter.Type.FullType}' for parameter '{parameter.Name}' (arg: {parameterIndex + 1}). Received '{argument.CurrentType.FullType}'. Will still pass validation", level: Level.Info);
                     }
                     else if(!action.Global && argument.Type != KSType.Any) //Global actions can receive an "any" type without issues
                     {
-                        AddValidationException($"Expected type '{parameter.Type.FullType}' for parameter '{parameter.Name}'. Received '{argument.CurrentType.FullType}'");
+                        AddValidationException($"Expected type '{parameter.Type.FullType}' for parameter '{parameter.Name}' (arg: {parameterIndex + 1}). Received '{argument.CurrentType.FullType}'");
                     }
                 }
 

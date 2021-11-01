@@ -2,6 +2,7 @@
 # KrunkScript Copyright (C) Yendis Entertainment Pty Ltd
 # 
 
+bool a = notEmpty "";
 
 #str test = (num)(toStr (GAME.PLAYERS.findByID("1")) + toNum "s");
 #str g = (num)(toStr (1) + toStr 1);
@@ -60,6 +61,18 @@ bool action consoleMenu_hasMenuEnabled() {
 	return (bool)consoleMenu_menuState.enabled;
 }
 
+action consoleMenu_addHistory(str text, str type, str color) {
+	if(lengthOf consoleMenu_menuState.history == (num)consoleMenu_menuState.maxHistory) {
+		remove consoleMenu_menuState.history[0];
+	}
+	
+	addTo (obj[])consoleMenu_menuState.history {
+		text: text,
+		type: type,
+		color: color
+	};
+}
+
 action consoleMenu_addKey(str key) {
 
 	str newText = (str)consoleMenu_menuState.text + key;
@@ -75,17 +88,6 @@ action consoleMenu_addKey(str key) {
 	consoleMenu_menuState.text = newText;
 }
 
-action consoleMenu_addHistory(str text, str type, str color) {
-	if(lengthOf consoleMenu_menuState.history == (num)consoleMenu_menuState.maxHistory) {
-		remove consoleMenu_menuState.history[0];
-	}
-	
-	addTo (obj[])consoleMenu_menuState.history {
-		text: text,
-		type: type,
-		color: color
-	};
-}
 
 action consoleMenu_sendCommand() {
 	if(lengthOf consoleMenu_menuState.text == 0) {

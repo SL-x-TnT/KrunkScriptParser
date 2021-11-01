@@ -33,6 +33,11 @@ namespace KrunkScriptParser.Models.Blocks
             }
         }
 
+        public override string ToString()
+        {
+            return FullType;
+        }
+
         public static bool operator ==(KSType type1, KSType type2)
         {
             return type1?.FullType == type2?.FullType;
@@ -73,5 +78,6 @@ namespace KrunkScriptParser.Models.Blocks
         internal static readonly KSType Any = new KSType { Name = "any" };
         internal static readonly KSType Action = new KSType { Name = "action" };
         internal static readonly KSType LengthOf = new KSType { Name = "lengthOf" };
+        internal static readonly KSType NotEmpty = new KSType { Name = "notEmpty" };
     }
 }

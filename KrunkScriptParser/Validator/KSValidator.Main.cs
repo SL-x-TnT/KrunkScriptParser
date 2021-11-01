@@ -118,7 +118,7 @@ namespace KrunkScriptParser.Validator
         {
             if(_token.Type != TokenTypes.Type)
             {
-                throw new ValidationException($"Expected a type. Received: '{_token.Value}'", _token.Line, _token.Column);
+                throw new ValidationException($"Expected a type. Received '{_token.Value}'", _token.Line, _token.Column);
             }
 
             KSType type = new KSType

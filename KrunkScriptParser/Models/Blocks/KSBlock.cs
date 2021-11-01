@@ -10,6 +10,8 @@ namespace KrunkScriptParser.Models.Blocks
     {
         public string Keyword { get; set; }
         public List<IKSValue> Lines { get; set; } = new List<IKSValue>();
+        public int Line { get; set; }
+        public int Column { get; set; }
 
         public KSType Type { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 

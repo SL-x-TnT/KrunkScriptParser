@@ -1,4 +1,5 @@
-﻿using KrunkScriptParser.Models.Blocks;
+﻿using KrunkScriptParser.Models;
+using KrunkScriptParser.Models.Blocks;
 using KrunkScriptParser.Models.Tokens;
 using System;
 using System.Collections.Generic;
@@ -37,9 +38,43 @@ namespace KrunkScriptParser.Validator
                 }
             }
 
+            int conditionalState = int.MaxValue; //0, 1, 2 = if, else if, else
+
             while(_token.Value != "}")
             {
-                block.Lines.Add(ParseLine());
+                IKSValue line = ParseLine();
+
+                if(line == null)
+                {
+                    AddValidationException("Failed to parse line", willThrow: true);
+                }
+
+                if(line is KSConditionalBlock conditionalBlock)
+                {
+                    if(conditionalBlock.IsIf)
+                    {
+                        conditionalState = 0;
+                    }
+                    else if (conditionalBlock.IsElseIf && conditionalState <= 2)
+                    {
+                        conditionalState = 2;
+                    }
+                    else 
+                    {
+                        if(conditionalState > 2)
+                        {
+                            AddValidationException($"'{conditionalBlock.Key}' block without an 'if' block", conditionalBlock.Line, conditionalBlock.Column);
+                        }
+
+                        conditionalState = int.MaxValue;
+                    }
+                }
+                else
+                {
+                    conditionalState = int.MaxValue;
+                }
+
+                block.Lines.Add(line);
             }
 
             RemoveScopeLevel();
@@ -62,7 +97,7 @@ namespace KrunkScriptParser.Validator
 
                 while(_iterator.Next().Type == TokenTypes.Keyword)
                 {
-                    key += _token.Value;
+                    key += $" {_token.Value}";
                 }
 
                 _iterator.ReturnTo(currentToken);
@@ -111,7 +146,7 @@ namespace KrunkScriptParser.Validator
 
                     if(next.Type != TokenTypes.Type)
                     {
-                        AddValidationException($"Expected a type cast. Received: {next.Value}");
+                        AddValidationException($"Expected a type cast. Received '{next.Value}'");
 
                         //Go to end of terminator
                         _iterator.SkipUntil(TokenTypes.Terminator);
@@ -146,7 +181,12 @@ namespace KrunkScriptParser.Validator
         /// </summary>
         private KSBlock ParseConditionalBlock(string key)
         {
-            KSConditionalBlock block = new KSConditionalBlock();
+            KSConditionalBlock block = new KSConditionalBlock
+            {
+                Key = key,
+                Line = _token.Line,
+                Column = _token.Column
+            };
 
             _iterator.Next();
 
@@ -157,10 +197,12 @@ namespace KrunkScriptParser.Validator
                 {
                     AddValidationException($"Missing start of '{key}' statement condition '('");
 
-                    _iterator.SkipUntil(new HashSet<string> { "{"});
+                    _iterator.SkipUntil(new HashSet<string> { "{" });
                 }
                 else
                 {
+                    _iterator.Next();
+
                     block.Condition = ParseExpression();
 
                     if (_token.Value != ")")
@@ -171,12 +213,17 @@ namespace KrunkScriptParser.Validator
                     {
                         _iterator.Next();
                     }
+
+                    if(block.Condition.CurrentType != KSType.Bool)
+                    {
+                        AddValidationException($"if/else if statement conditions require type '{KSType.Bool}'. Received '{block.Condition.CurrentType}'");
+                    }
                 }
-
-                KSBlock ksBlock = ParseBlock(key);
-
-                block.Lines.AddRange(ksBlock.Lines);
             }
+
+            KSBlock ksBlock = ParseBlock(key);
+
+            block.Lines.AddRange(ksBlock.Lines);
 
             return block;
         }
