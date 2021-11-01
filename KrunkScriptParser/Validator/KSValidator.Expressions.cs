@@ -15,7 +15,7 @@ namespace KrunkScriptParser.Validator
         /// Parses an entire expression. Ex: num a = 1 + 1
         /// Recursively parses inner expression. Ex: num a = (1 + 1) + 1;
         /// </summary>
-        private KSExpression ParseExpression(IKSValue prevValue = null, int depth = 0, bool isArguments = false)
+        private KSExpression ParseExpression(IKSValue prevValue = null, int depth = 0, bool isGroup = false)
         {
             KSExpression expression = new KSExpression();
 
@@ -65,13 +65,13 @@ namespace KrunkScriptParser.Validator
                     }
                     else //New Group
                     {
-                        innerExpression = ParseExpression();
+                        innerExpression = ParseExpression(isGroup: true);
 
                         expression.Value = innerExpression;
                         expression.Type = innerExpression.CurrentType;
 
-                        ValidateForcedType(expression.CurrentType, forcedTypes);
-                        expression.ForcedType = forcedTypes.LastOrDefault()?.ReturnType;
+                        ValidateForcedType(innerExpression.CurrentType, forcedTypes);
+                        innerExpression.ForcedType = forcedTypes.LastOrDefault()?.ReturnType;
                     }
                 }
             }
@@ -93,10 +93,7 @@ namespace KrunkScriptParser.Validator
                 expression.ForcedType = forcedTypes.FirstOrDefault()?.ReturnType;
             }
 
-            //Don't iterate passed the last ) for arguments
-            bool skipParentheses = isArguments && _iterator.PeekNext().Type == TokenTypes.Terminator;
-
-            if(!skipParentheses && _token.Value == ")")
+            if (isGroup)
             {
                 _iterator.Next();
             }
@@ -151,6 +148,12 @@ namespace KrunkScriptParser.Validator
 
                         initialTypes = null;
                     }
+
+                    //Objects end at a terminator
+                    if (_token.Type != TokenTypes.Terminator)
+                    {
+                        _iterator.Next();
+                    }
                 }
 
                 group.Values.Add(rightValue);
@@ -173,7 +176,6 @@ namespace KrunkScriptParser.Validator
 
                 if (_token.Type != TokenTypes.Terminator && _token.Type != TokenTypes.Operator)
                 {
-                    _iterator.Next();
                 }
 
             }
