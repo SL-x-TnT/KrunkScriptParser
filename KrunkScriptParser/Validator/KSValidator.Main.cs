@@ -75,8 +75,6 @@ namespace KrunkScriptParser.Validator
                             nextToken?.Type != TokenTypes.Modifier)
                     {
                         KSVariable variable = ParseVariableDeclaration();
-
-                        AddDeclaration(variable);
                     }
                     else if (_token.Type == TokenTypes.Action || (_token.Type == TokenTypes.Type && 
                             (nextToken?.Type == TokenTypes.Action || nextToken?.Type == TokenTypes.Modifier))) //Actions
@@ -174,6 +172,8 @@ namespace KrunkScriptParser.Validator
                 throw new ValidationException($"Expected variable name. Found: {_token.Value}", _token.Line, _token.Column);
             }
 
+            AddDeclaration(variable);
+
             //TODO: Nested array support
             if (variable.Type.ArrayDepth > 1)
             {
@@ -210,9 +210,9 @@ namespace KrunkScriptParser.Validator
 
             variable.Value = expression;
 
-            if (variable.Type.FullType != expression.CurrentType.FullType)
+            if (variable.Type.FullType != expression.Type.FullType)
             {
-                AddValidationException($"Variable '{variable.Name}' expected type '{variable.Type.FullType}'. Received '{expression.CurrentType.FullType}'", level: Level.Error);
+                AddValidationException($"Variable '{variable.Name}' expected type '{variable.Type.FullType}'. Received '{expression.Type.FullType}'", level: Level.Error);
             }
 
             //Line terminator

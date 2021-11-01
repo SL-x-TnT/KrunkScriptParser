@@ -148,9 +148,9 @@ namespace KrunkScriptParser.Validator
                 _iterator.Next();
 
                 //KSExpression expression = ParseExpression(depth: depth + 1);
-                KSExpression expression = ParseExpression(depth: depth + 1);
+                KSExpression expression = ParseExpressionNew(depth: depth + 1);
 
-                expression.ForcedType = KSType.Any;
+                expression.Type = KSType.Any;
 
                 if (!ksObject.Properties.TryAdd(name, expression))
                 {

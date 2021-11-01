@@ -247,15 +247,15 @@ namespace KrunkScriptParser.Validator
 
                 KSParameter parameter = action.Parameters[parameterIndex];
 
-                if (parameter.Type.FullType != argument.CurrentType.FullType && parameter.Type != KSType.Any)
+                if (parameter.Type.FullType != argument.Type.FullType && parameter.Type != KSType.Any)
                 {
                     if(action.Global)
                     {
-                        AddValidationException($"Global method '{action.Name}' expected type '{parameter.Type.FullType}' for parameter '{parameter.Name}' (arg: {parameterIndex + 1}). Received '{argument.CurrentType.FullType}'. Will still pass validation", level: Level.Info);
+                        AddValidationException($"Global method '{action.Name}' expected type '{parameter.Type.FullType}' for parameter '{parameter.Name}' (arg: {parameterIndex + 1}). Received '{argument.Type.FullType}'. Will still pass validation", level: Level.Info);
                     }
                     else if(!action.Global && argument.Type != KSType.Any) //Global actions can receive an "any" type without issues
                     {
-                        AddValidationException($"Expected type '{parameter.Type.FullType}' for parameter '{parameter.Name}' (arg: {parameterIndex + 1}). Received '{argument.CurrentType.FullType}'");
+                        AddValidationException($"Expected type '{parameter.Type.FullType}' for parameter '{parameter.Name}' (arg: {parameterIndex + 1}). Received '{argument.Type.FullType}'");
                     }
                 }
 

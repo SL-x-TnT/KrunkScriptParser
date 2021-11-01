@@ -11,287 +11,7 @@ namespace KrunkScriptParser.Validator
 {
     public partial class KSValidator
     {
-        /// <summary>
-        /// Parses an entire expression. Ex: num a = 1 + 1
-        /// Recursively parses inner expression. Ex: num a = (1 + 1) + 1;
-        /// </summary>
-        private KSExpression ParseExpression(IKSValue prevValue = null, int depth = 0, bool isGroup = false)
-        {
-            KSExpression expression = new KSExpression();
-
-            List<ForceConversion> forcedTypes = new List<ForceConversion>();
-
-            //Determines whether or not the value needs to not be converted
-            bool useForcedTypes = true;
-
-            while (_token.Type == TokenTypes.KeyMethod)
-            {
-                switch (_token.Value)
-                {
-                    case "toNum":
-                        forcedTypes.Add(new ForceConversion(KSType.Number, true));
-                        break;
-                    case "toStr":
-                        forcedTypes.Add(new ForceConversion(KSType.String, true));
-                        break;
-                    case "lengthOf":
-                        forcedTypes.Add(new ForceConversion(KSType.LengthOf, false, KSType.Number));
-                        break;
-                    case "notEmpty":
-                        forcedTypes.Add(new ForceConversion(KSType.NotEmpty, false, KSType.Bool));
-                        break;
-                    default:
-                        throw new ValidationException($"Unexpected '{_token.Value}' statement", _token.Line, _token.Column);
-                }
-
-                useForcedTypes = false;
-
-                _iterator.Next();
-            }
-
-            KSExpression innerExpression = null;
-
-            if (_token.Type == TokenTypes.Punctuation)
-            {
-                useForcedTypes = true;
-
-                while (_token.Value == "(")
-                {
-                    //Check to see if it's a cast
-                    _iterator.Next();
-
-                    if (_token.Type == TokenTypes.Type)
-                    {
-                        useForcedTypes = false;
-
-                        forcedTypes.Add(new ForceConversion(ParseType(), false));
-
-                        if (_token.Type != TokenTypes.Punctuation || _token.Value != ")")
-                        {
-                            AddValidationException($"Missing ')'");
-                        }
-                        else
-                        {
-                            _iterator.Next();
-                        }
-                    }
-                    else //New Group
-                    {
-                        //innerExpression = ParseExpression(isGroup: true);
-                        innerExpression = ParseExpressionNew();
-                        expression.Value = innerExpression;
-                        expression.Type = innerExpression.CurrentType;
-
-                        ValidateForcedType(innerExpression.CurrentType, forcedTypes);
-                        innerExpression.ForcedType = forcedTypes.LastOrDefault()?.ReturnType;
-                    }
-                }
-            }
-
-            //Bool converts
-            while (_token.Type == TokenTypes.Operator && _token.Value == "!")
-            {
-                forcedTypes.Add(new ForceConversion(KSType.Bool, true));
-
-                _iterator.Next();
-            }
-
-            expression.Value = ParseGroup(innerExpression, forcedTypes);
-            expression.Type = expression.Value.Type;
-
-            if (useForcedTypes && forcedTypes?.Count > 0)
-            {
-                //ValidateForcedType(expression.CurrentType, forcedTypes);
-                expression.ForcedType = forcedTypes.FirstOrDefault()?.ReturnType;
-            }
-
-            if (isGroup)
-            {
-                _iterator.Next();
-            }
-
-            return expression;
-        }
-
-        /// <summary>
-        /// Parses a group. Groups are values within parentheses
-        /// </summary>
-        /// <returns></returns>
-        private IKSValue ParseGroup(KSExpression value = null, List<ForceConversion> initialTypes = null)
-        {
-            IKSValue leftValue = value;
-
-            KSGroup group = new KSGroup();
-            group.Type = value?.CurrentType ?? initialTypes?.LastOrDefault()?.ReturnType;
-
-            if (value != null)
-            {
-                group.Values.Add(value);
-            }
-
-            while (_token.Type != TokenTypes.Terminator && //Line ends
-                _token.Value != ")" &&                     //Group ends
-                _token.Value != "," &&                     //Object property ends
-                _token.Value != "}")                       //Object property ends
-            {
-                string op = ParseOperator();
-
-                if (!String.IsNullOrEmpty(op) && (leftValue == null || !IsValidOperator(op)))
-                {
-                    AddValidationException($"Invalid operator '{op}'");
-                }
-
-                IKSValue rightValue = null;
-
-                //New group / cast, parse expression
-                if (_token.Value == "(" || _token.Value == "!" || _token.Type == TokenTypes.KeyMethod)
-                {
-                    rightValue = ParseExpression(leftValue);
-                }
-                else
-                {
-                    rightValue = ParseValue();
-
-                    if (initialTypes != null && initialTypes.Count > 0)
-                    {
-                        ValidateForcedType(rightValue.Type, initialTypes);
-                        rightValue.Type = initialTypes.FirstOrDefault().ReturnType;
-
-                        initialTypes = null;
-                    }
-
-                    //Objects end at a terminator
-                    if (_token.Type != TokenTypes.Terminator)
-                    {
-                        _iterator.Next();
-                    }
-                }
-
-                group.Values.Add(rightValue);
-
-                if (leftValue != null)
-                {
-                    ValidateValues(op, leftValue, rightValue);
-                }
-
-                if (group.Type == null)
-                {
-                    group.Type = rightValue.Type;
-                }
-                else if(OperatorReturnsBool(op)) //Equality, so the group type should be a bool
-                {
-                    group.Type = KSType.Bool;
-                }
-
-                leftValue = rightValue;
-            }
-
-            return group;
-
-            // Returns whether or not the operator is valid
-            bool IsValidOperator(string op)
-            {
-                switch (op)
-                {
-                    case "+":
-                    case "-":
-                    case "/":
-                    case "*":
-                    case "<":
-                    case ">":
-                    case "<<":
-                    case ">>":
-                    case "<=":
-                    case ">=":
-                    case ">>>":
-                    case "|":
-                    case "&":
-                    case "||":
-                    case "&&":
-                    case "==":
-                    case "!=":
-                        return true;
-                }
-
-                return false;
-            }
-
-        }
-
-        private string ParseOperator()
-        {
-            string op = String.Empty;
-
-            // ! may be used to convert a type to a bool, but it shouldn't be at the end of an operator
-            while ((_token.Type == TokenTypes.Operator || _token.Type == TokenTypes.Assign) && (String.IsNullOrEmpty(op) || _token.Value != "!"))
-            {
-                //Possibly negative value and not --
-                if (!String.IsNullOrEmpty(op) && _token.Value == "-" && op.Last() != '-')
-                {
-                    break;
-                }
-
-                op += _token.Value;
-                _iterator.Next();
-            }
-
-            return op;
-        }
-
-        /// <summary>
-        /// Handles validation of conversions/casts
-        /// </summary>
-        private void ValidateForcedType(KSType currentType, List<ForceConversion> types)
-        {
-            foreach (ForceConversion forceConversion in types.Reverse<ForceConversion>())
-            {
-                bool valid = forceConversion.IsValid(currentType);
-
-                if (!valid)
-                {
-                    if (forceConversion.Type == KSType.LengthOf)
-                    {
-                        AddValidationException($"lengthOf expects an array, '{KSType.String.FullType}', or '{KSType.Any}'. Received '{currentType.FullType}'");
-                    }
-                    else if (forceConversion.Type == KSType.NotEmpty)
-                    {
-                        AddValidationException($"notEmpty expects an '{KSType.Object}' or '{KSType.Any}'. Received '{currentType.FullType}'");
-                    }
-                    else
-                    {
-                        AddValidationException($"Invalid cast from '{currentType.FullType}' to '{forceConversion.ReturnType.FullType}'");
-                    }
-                }
-
-
-                currentType = forceConversion.ReturnType;
-            }
-        }
-
-
-
-
-        private bool OperatorReturnsBool(string op)
-        {
-            switch (op)
-            {
-                case "<":
-                case ">":
-                case "<=":
-                case ">=":
-                case "==":
-                case "!=":
-                    return true;
-            }
-
-            return false;
-        }
-
-
-
-
-
-        private KSExpression ParseExpressionNew(bool insideGroup = false)
+        private KSExpression ParseExpressionNew(bool insideGroup = false, int depth = 0)
         {
             KSExpression expression = new KSExpression
             {
@@ -299,6 +19,7 @@ namespace KrunkScriptParser.Validator
                 Column = _token.Column
             };
 
+            /*
             ReadConversions();
 
             //New group
@@ -307,13 +28,15 @@ namespace KrunkScriptParser.Validator
                 _iterator.Next();
 
                 expression.Items.Add(ParseExpressionNew(true));
-            }
+            }*/
 
             //Read remaining items
             while(_token.Value != ")" && _token.Type != TokenTypes.Terminator)
             {
+                ReadConversions();
+
                 //New group
-                if(_token.Value == "(")
+                if (_token.Value == "(")
                 {
                     _iterator.Next();
 
@@ -353,7 +76,7 @@ namespace KrunkScriptParser.Validator
 
                 ExpressionValue value = new ExpressionValue
                 {
-                    Value = ParseValue(),
+                    Value = ParseValue(depth),
                     Line = _token.Line,
                     Column = _token.Column
                 };
@@ -361,6 +84,12 @@ namespace KrunkScriptParser.Validator
                 value.Type = value.Value.Type;
 
                 expression.Items.Add(value);
+
+                //End of object
+                if(_token.Type == TokenTypes.Terminator)
+                {
+                    continue;
+                }
 
                 _iterator.Next();
 
@@ -389,8 +118,7 @@ namespace KrunkScriptParser.Validator
             }
 
             //Determine the type
-            expression.ForcedType = DetermineExpressionType(expression.Items);
-            expression.Type = expression.ForcedType;
+            expression.Type = DetermineExpressionType(expression.Items);
 
             return expression;
 
@@ -498,11 +226,6 @@ namespace KrunkScriptParser.Validator
 
                     newType = forceConversion.ReturnType;
 
-                    if (node.Value is KSExpression expression)
-                    {
-                        expression.ForcedType = forceConversion.ReturnType;
-                    }
-
                     node.Value.Type = forceConversion.ReturnType;
 
                     //Should end up as a normal value
@@ -588,7 +311,6 @@ namespace KrunkScriptParser.Validator
             return false;
         }
 
-
         // Checks whether the left and right values of an operator are the correct + same type
         private void ValidateValuesNew(ExpressionOperator op, IExpressionItem left, IExpressionItem right)
         {
@@ -642,22 +364,13 @@ namespace KrunkScriptParser.Validator
             }
         }
 
-
-        // Checks whether the left and right values of an operator are the correct + same type
+        /// <summary>
+        /// Checks whether the left and right values of an operator are the correct + same type
+        /// </summary>
         private void ValidateValues(string op, IKSValue leftValue, IKSValue rightValue)
         {
             KSType leftType = leftValue.Type;
             KSType rightType = rightValue.Type;
-
-            if (leftValue is KSExpression lv)
-            {
-                leftType = lv.CurrentType;
-            }
-
-            if (rightValue is KSExpression rv)
-            {
-                rightType = rv.CurrentType;
-            }
 
             if (leftValue != null)
             {
@@ -700,6 +413,72 @@ namespace KrunkScriptParser.Validator
                         break;
                 }
             }
+        }
+
+        private string ParseOperator()
+        {
+            string op = String.Empty;
+
+            // ! may be used to convert a type to a bool, but it shouldn't be at the end of an operator
+            while ((_token.Type == TokenTypes.Operator || _token.Type == TokenTypes.Assign) && (String.IsNullOrEmpty(op) || _token.Value != "!"))
+            {
+                //Possibly negative value and not --
+                if (!String.IsNullOrEmpty(op) && _token.Value == "-" && op.Last() != '-')
+                {
+                    break;
+                }
+
+                op += _token.Value;
+                _iterator.Next();
+            }
+
+            return op;
+        }
+
+        /// <summary>
+        /// Handles validation of conversions/casts
+        /// </summary>
+        private void ValidateForcedType(KSType currentType, List<ForceConversion> types)
+        {
+            foreach (ForceConversion forceConversion in types.Reverse<ForceConversion>())
+            {
+                bool valid = forceConversion.IsValid(currentType);
+
+                if (!valid)
+                {
+                    if (forceConversion.Type == KSType.LengthOf)
+                    {
+                        AddValidationException($"lengthOf expects an array, '{KSType.String.FullType}', or '{KSType.Any}'. Received '{currentType.FullType}'");
+                    }
+                    else if (forceConversion.Type == KSType.NotEmpty)
+                    {
+                        AddValidationException($"notEmpty expects an '{KSType.Object}' or '{KSType.Any}'. Received '{currentType.FullType}'");
+                    }
+                    else
+                    {
+                        AddValidationException($"Invalid cast from '{currentType.FullType}' to '{forceConversion.ReturnType.FullType}'");
+                    }
+                }
+
+
+                currentType = forceConversion.ReturnType;
+            }
+        }
+
+        private bool OperatorReturnsBool(string op)
+        {
+            switch (op)
+            {
+                case "<":
+                case ">":
+                case "<=":
+                case ">=":
+                case "==":
+                case "!=":
+                    return true;
+            }
+
+            return false;
         }
     }
 }

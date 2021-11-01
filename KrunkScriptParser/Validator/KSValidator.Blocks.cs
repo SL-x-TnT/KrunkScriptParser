@@ -116,13 +116,21 @@ namespace KrunkScriptParser.Validator
                 {
                     _iterator.Next();
 
-                    returnValue = new KSStatement
+
+                    KSStatement statement = new KSStatement
                     {
                         Statement = "return",
                         Line = _token.Line,
                         Column = _token.Column,
-                        Value = ParseExpressionNew(),
                     };
+                    
+                    //Has a value
+                    if (_token.Type != TokenTypes.Terminator)
+                    {
+                        statement.Value = ParseExpressionNew();
+                    }
+
+                    returnValue = statement;
                 }
                 else if (IsConditionalBlock(key)) //Handles if/else if/else
                 {
@@ -137,8 +145,6 @@ namespace KrunkScriptParser.Validator
             {
                 //Handles terminator itself
                 returnValue = ParseVariableDeclaration();
-
-                AddDeclaration(returnValue);
 
                 return returnValue;
             }
@@ -220,9 +226,9 @@ namespace KrunkScriptParser.Validator
                         _iterator.Next();
                     }
 
-                    if(block.Condition.CurrentType != KSType.Bool)
+                    if(block.Condition.Type != KSType.Bool)
                     {
-                        AddValidationException($"if/else if statement conditions require type '{KSType.Bool}'. Received '{block.Condition.CurrentType}'");
+                        AddValidationException($"if/else if statement conditions require type '{KSType.Bool}'. Received '{block.Condition.Type}'");
                     }
                 }
             }
