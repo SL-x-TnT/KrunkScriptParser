@@ -2,7 +2,9 @@
 # KrunkScript Copyright (C) Yendis Entertainment Pty Ltd
 # 
 
-str test = GAME.PLAYERS.findByID(!"1");
+#str g = ("a" + "b");
+
+str test = toStr (GAME.PLAYERS.findByID(("1"))) + "s";
 
 obj consoleMenu_config = {
 	menuKey: "`",           # Key used to open menu
