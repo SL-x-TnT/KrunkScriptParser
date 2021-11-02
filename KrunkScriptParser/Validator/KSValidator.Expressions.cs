@@ -245,7 +245,7 @@ namespace KrunkScriptParser.Validator
                 currentPriority--;
             }
 
-            return linkedList.Last.Value.Type;
+            return linkedList.Last?.Value?.Type;
 
             LinkedListNode<ExpressionItem> HandleConversion(LinkedListNode<ExpressionItem> node)
             {

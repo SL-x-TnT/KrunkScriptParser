@@ -116,7 +116,6 @@ namespace KrunkScriptParser.Validator
                 {
                     _iterator.Next();
 
-
                     KSStatement statement = new KSStatement
                     {
                         Statement = "return",
@@ -191,9 +190,23 @@ namespace KrunkScriptParser.Validator
                 }
                 else if (method == "addTo")
                 {
-                    AddValidationException($"'addTo' command not validated yet", level: Level.Warning);
+                    bool hasError = false;
 
-                    _iterator.SkipUntil(TokenTypes.Terminator);
+                    KSExpression array = ParseExpression();
+
+                    if (!array.Type.IsArray)
+                    {
+                        hasError = true;
+                        AddValidationException($"Expected an array. Received '{array.Type}'", array.Line, array.Column);
+                    }
+
+                    array.Type.DecreaseDepth();
+                    KSExpression item = ParseExpression();
+
+                    if(!hasError && array.Type != item.Type && item.Type != null) //Null item.Type means it failed to parse the expression before the terminator
+                    {
+                        AddValidationException($"Expected type '{array.Type}'. Received '{item.Type}'", item.Line, item.Column);
+                    }
                 }
                 else
                 {
