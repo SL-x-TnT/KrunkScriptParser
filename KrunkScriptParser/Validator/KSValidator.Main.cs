@@ -391,8 +391,23 @@ namespace KrunkScriptParser.Validator
 
         private class TokenIterator
         {
-            public Token Current => _token;
+            public Token Current
+            {
+                get
+                {
+                    //Failsafe to prevent infinite loops due to parsing bugs
+                    //Guessing 10k won't ever be hit under normal conditions
+                    if(++_counter >= 10000)
+                    {
+                        throw new ValidationException($"Infinite loop detected", _token.Line, _token.Column);
+                    }
+
+                    return _token;
+                }
+            }
+
             private Token _token;
+            private int _counter = 0;
 
             public TokenIterator(IEnumerable<Token> tokens)
             {
@@ -442,6 +457,9 @@ namespace KrunkScriptParser.Validator
 
             public Token Next(bool checkEOF = true)
             {
+                Console.WriteLine(_counter);
+                _counter = 0;
+
                 if(checkEOF)
                 {
                     if(_token.Next == null)
