@@ -1,5 +1,6 @@
 ﻿using KrunkScriptParser.Models;
 using KrunkScriptParser.Models.Blocks;
+using KrunkScriptParser.Models.Expressions;
 using KrunkScriptParser.Models.Tokens;
 using System;
 using System.Collections.Generic;
@@ -11,7 +12,7 @@ namespace KrunkScriptParser.Validator
 {
     public partial class KSValidator
     {
-        private KSExpression ParseExpressionNew(bool insideGroup = false, int depth = 0)
+        private KSExpression ParseExpression(bool insideGroup = false, int depth = 0)
         {
             KSExpression expression = new KSExpression
             {
@@ -40,7 +41,7 @@ namespace KrunkScriptParser.Validator
                 {
                     _iterator.Next();
 
-                    expression.Items.Add(ParseExpressionNew(true));
+                    expression.Items.Add(ParseExpression(true));
 
                     continue;
                 }
@@ -54,7 +55,8 @@ namespace KrunkScriptParser.Validator
                     {
                         expression.Items.Add(op);
 
-                        ReadConversions();
+                        continue;
+                        //ReadConversions();
                     }
                     else
                     {
@@ -131,19 +133,19 @@ namespace KrunkScriptParser.Validator
             }
         }
 
-        private KSType DetermineExpressionType(List<IExpressionItem> items)
+        private KSType DetermineExpressionType(List<ExpressionItem> items)
         {
             KSType currentType = KSType.Unknown;
 
-            LinkedList<IExpressionItem> linkedList = new LinkedList<IExpressionItem>();
+            LinkedList<ExpressionItem> linkedList = new LinkedList<ExpressionItem>();
 
             items.ForEach(x => linkedList.AddLast(x));
 
-            int currentPriority = IExpressionItem.MaxPriority;
+            int currentPriority = ExpressionItem.MaxPriority;
 
             while (linkedList.Count > 1)
             {
-                LinkedListNode<IExpressionItem> currentNode = linkedList.First;
+                LinkedListNode<ExpressionItem> currentNode = linkedList.First;
 
                 while(currentNode != linkedList.Last && currentNode != null)
                 {
@@ -156,14 +158,15 @@ namespace KrunkScriptParser.Validator
                         }
                         else if(currentNode.Value is ExpressionOperator op)
                         {
-                            IExpressionItem leftItem = currentNode.Previous?.Value;
-                            IExpressionItem rightItem = currentNode.Next?.Value;
+                            ExpressionItem leftItem = currentNode.Previous?.Value;
+                            ExpressionItem rightItem = currentNode.Next?.Value;
 
-                            ValidateValuesNew(op, leftItem, rightItem);
+                            ValidateValues(op, leftItem, rightItem);
 
-                            if (OperatorReturnsBool(op.Operator))
+
+                            if (op.ReturnType != null)
                             {
-                                currentType = KSType.Bool;
+                                currentType = op.ReturnType;
                             }
                             else
                             {
@@ -171,7 +174,7 @@ namespace KrunkScriptParser.Validator
                             }
 
                             //Add new node
-                            LinkedListNode<IExpressionItem> newNode = linkedList.AddAfter(currentNode, new ExpressionValue
+                            LinkedListNode<ExpressionItem> newNode = linkedList.AddAfter(currentNode, new ExpressionValue
                             {
                                 Type = currentType,
                             });
@@ -182,6 +185,11 @@ namespace KrunkScriptParser.Validator
                             linkedList.Remove(currentNode);
 
                             currentNode = newNode;
+                        }
+                        else if (currentNode.Value is KSExpression expression)
+                        {
+                            //Should already be handled
+                            expression.Priority = 0;
                         }
                     }
                     else if (currentNode.Value.Priority > currentPriority)
@@ -197,7 +205,7 @@ namespace KrunkScriptParser.Validator
 
             return linkedList.Last.Value.Type;
 
-            LinkedListNode<IExpressionItem> HandleConversion(LinkedListNode<IExpressionItem> node)
+            LinkedListNode<ExpressionItem> HandleConversion(LinkedListNode<ExpressionItem> node)
             {
                 KSType newType = KSType.Unknown;
 
@@ -253,6 +261,13 @@ namespace KrunkScriptParser.Validator
                     Column = _token.Column
                 };
 
+                if(op.Priority == int.MaxValue)
+                {
+                    AddValidationException($"Unexpected value '{op.Operator}' found");
+
+                    return false;
+                }
+
                 return true;
             }
 
@@ -263,7 +278,27 @@ namespace KrunkScriptParser.Validator
         {
             conversion = null;
 
-            if(_token.Value == "(" && _iterator.PeekNext().Type == TokenTypes.Type)
+            if(_token.Value == "!")
+            {
+                conversion = new ForceConversion(KSType.Bool, true);
+                conversion.Line = _token.Line;
+                conversion.Column = _token.Column;
+
+                _iterator.Next();
+
+                return true;
+            }
+            else if(_token.Value == "~")
+            {
+                conversion = new ForceConversion(KSType.Number, false);
+                conversion.Line = _token.Line;
+                conversion.Column = _token.Column;
+
+                _iterator.Next();
+
+                return true;
+            }
+            else if(_token.Value == "(" && _iterator.PeekNext().Type == TokenTypes.Type)
             {
                 _iterator.Next();
 
@@ -311,8 +346,7 @@ namespace KrunkScriptParser.Validator
             return false;
         }
 
-        // Checks whether the left and right values of an operator are the correct + same type
-        private void ValidateValuesNew(ExpressionOperator op, IExpressionItem left, IExpressionItem right)
+        private void ValidateValues(ExpressionOperator op, ExpressionItem left, ExpressionItem right)
         {
             if(!left.HasType)
             {
@@ -332,86 +366,11 @@ namespace KrunkScriptParser.Validator
                 AddValidationException($"Mismatched types. Expected '{leftType?.FullType}'. Received '{leftType?.FullType} {op.Operator} {rightType?.FullType}'", op.Line, op.Column);
             }
 
-            switch (op.Operator)
+            if(!op.ValidTypes.Contains(rightType))
             {
-                case "+":
-                    if (rightType != KSType.String && rightType != KSType.Number)
-                    {
-                        AddValidationException($"Expected '{KSType.String.FullType}' or '{KSType.Number.FullType}' with operator '{op.Operator}'. Received '{leftType.FullType} {op.Operator} {rightType.FullType}'", op.Line, op.Column);
-                    }
+                string expected = $"'{String.Join("' or '", op.ValidTypes)}'";
 
-                    break;
-                case "-":
-                case "*":
-                case "/":
-                case "<<":
-                case ">>":
-                case "<<<":
-                case "<=":
-                case ">=":
-                    if (rightType != KSType.Number)
-                    {
-                        AddValidationException($"Expected '{KSType.Number.FullType}' with operator '{op.Operator}'. Received '{leftType.FullType} {op.Operator} {rightType.FullType}'", op.Line, op.Column);
-                    }
-                    break;
-                case "&&":
-                case "||":
-                    if (rightType != KSType.Bool)
-                    {
-                        AddValidationException($"Expected '{KSType.Bool.FullType}' with operator '{op.Operator}'. Received '{leftType.FullType} {op.Operator} {rightType.FullType}'", op.Line, op.Column);
-                    }
-                    break;
-            }
-        }
-
-        /// <summary>
-        /// Checks whether the left and right values of an operator are the correct + same type
-        /// </summary>
-        private void ValidateValues(string op, IKSValue leftValue, IKSValue rightValue)
-        {
-            KSType leftType = leftValue.Type;
-            KSType rightType = rightValue.Type;
-
-            if (leftValue != null)
-            {
-                if (leftType != rightType && !String.IsNullOrEmpty(op))
-                {
-                    AddValidationException($"Mismatched types. Expected '{leftType.FullType}'. Received '{leftType.FullType} {op} {rightType.FullType}'");
-                }
-            }
-
-            if (!String.IsNullOrEmpty(op))
-            {
-                switch (op)
-                {
-                    case "+":
-                        if (rightType != KSType.String && rightType != KSType.Number)
-                        {
-                            AddValidationException($"Expected '{KSType.String.FullType}' or '{KSType.Number.FullType}' with operator '{op}'. Received '{leftType.FullType} {op} {rightType.FullType}'");
-                        }
-
-                        break;
-                    case "-":
-                    case "*":
-                    case "/":
-                    case "<<":
-                    case ">>":
-                    case "<<<":
-                    case "<=":
-                    case ">=":
-                        if (rightType != KSType.Number)
-                        {
-                            AddValidationException($"Expected '{KSType.Number.FullType}' with operator '{op}'. Received {leftType.FullType} {op} {rightType.FullType}");
-                        }
-                        break;
-                    case "&&":
-                    case "||":
-                        if (rightType != KSType.Bool)
-                        {
-                            AddValidationException($"Expected '{KSType.Bool.FullType}' with operator '{op}'. Received {leftType.FullType} {op} {rightType.FullType}");
-                        }
-                        break;
-                }
+                AddValidationException($"Expected {expected} with operator '{op.Operator}'. Received '{leftType.FullType} {op.Operator} {rightType.FullType}'", op.Line, op.Column);
             }
         }
 
@@ -422,7 +381,7 @@ namespace KrunkScriptParser.Validator
             // ! may be used to convert a type to a bool, but it shouldn't be at the end of an operator
             while ((_token.Type == TokenTypes.Operator || _token.Type == TokenTypes.Assign) && (String.IsNullOrEmpty(op) || _token.Value != "!"))
             {
-                //Possibly negative value and not --
+                //Possibly negative value and not --. Ignoring + unary operator
                 if (!String.IsNullOrEmpty(op) && _token.Value == "-" && op.Last() != '-')
                 {
                     break;
@@ -433,52 +392,6 @@ namespace KrunkScriptParser.Validator
             }
 
             return op;
-        }
-
-        /// <summary>
-        /// Handles validation of conversions/casts
-        /// </summary>
-        private void ValidateForcedType(KSType currentType, List<ForceConversion> types)
-        {
-            foreach (ForceConversion forceConversion in types.Reverse<ForceConversion>())
-            {
-                bool valid = forceConversion.IsValid(currentType);
-
-                if (!valid)
-                {
-                    if (forceConversion.Type == KSType.LengthOf)
-                    {
-                        AddValidationException($"lengthOf expects an array, '{KSType.String.FullType}', or '{KSType.Any}'. Received '{currentType.FullType}'");
-                    }
-                    else if (forceConversion.Type == KSType.NotEmpty)
-                    {
-                        AddValidationException($"notEmpty expects an '{KSType.Object}' or '{KSType.Any}'. Received '{currentType.FullType}'");
-                    }
-                    else
-                    {
-                        AddValidationException($"Invalid cast from '{currentType.FullType}' to '{forceConversion.ReturnType.FullType}'");
-                    }
-                }
-
-
-                currentType = forceConversion.ReturnType;
-            }
-        }
-
-        private bool OperatorReturnsBool(string op)
-        {
-            switch (op)
-            {
-                case "<":
-                case ">":
-                case "<=":
-                case ">=":
-                case "==":
-                case "!=":
-                    return true;
-            }
-
-            return false;
         }
     }
 }

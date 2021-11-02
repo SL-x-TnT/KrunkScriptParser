@@ -127,7 +127,7 @@ namespace KrunkScriptParser.Validator
                     //Has a value
                     if (_token.Type != TokenTypes.Terminator)
                     {
-                        statement.Value = ParseExpressionNew();
+                        statement.Value = ParseExpression();
                     }
 
                     returnValue = statement;
@@ -169,6 +169,35 @@ namespace KrunkScriptParser.Validator
 
                 //returnValue = ParseExpression();
             }
+            else if(_token.Type == TokenTypes.KeyMethod)
+            {
+                string method = _token.Value;
+
+                _iterator.Next();
+
+                if (method == "remove")
+                {
+                    //Parse expression will handle index validation
+                    KSExpression value = ParseExpression();
+
+                    if (value.Type != KSType.Any && !value.Type.IsArray)
+                    {
+                        AddValidationException($"Unexpected value '{_token.Value}'");
+
+                        _iterator.SkipUntil(TokenTypes.Terminator);
+                    }
+                }
+                else if (method == "addTo")
+                {
+                    AddValidationException($"'addTo' command not validated yet", level: Level.Warning);
+
+                    _iterator.SkipUntil(TokenTypes.Terminator);
+                }
+                else
+                {
+                    AddValidationException($"Unknown command '{method}'");
+                }
+            }
             else
             {
                 AddValidationException($"Unexpected value '{_token.Value}'");
@@ -178,7 +207,7 @@ namespace KrunkScriptParser.Validator
 
             if(_token.Type != TokenTypes.Terminator)
             {
-                AddValidationException("Missing ';' for line");
+                AddValidationException($"Missing ';' on line {_token.Line}");
             }
             else
             {
@@ -215,7 +244,7 @@ namespace KrunkScriptParser.Validator
                 {
                     _iterator.Next();
 
-                    block.Condition = ParseExpressionNew();
+                    block.Condition = ParseExpression();
 
                     if (_token.Value != ")")
                     {

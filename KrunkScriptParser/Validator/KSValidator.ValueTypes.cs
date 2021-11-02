@@ -59,40 +59,21 @@ namespace KrunkScriptParser.Validator
 
                 KSVariableName variableName = new KSVariableName
                 {
-                    Type = variable?.Type ?? KSType.Any,
+                    Type = new KSType(variable?.Type),
                     Variable = variable as KSVariable
                 };
 
-                if (variable?.Type.IsArray == true)
+                if (_iterator.PeekNext().Value == "[")
                 {
-                    //Check to see if indexed
-                    Token next = _iterator.PeekNext();
+                    _iterator.Next();
 
-                    if (next.Type == TokenTypes.Punctuation && next.Value == "[")
+                    while (TryReadIndexer(out IKSValue v))
                     {
-                        _iterator.Next();
-                        _iterator.Next();
+                        variableName.Type.DecreaseDepth();
 
-                        IKSValue indexer = ParseValue(depth + 1);
-
-                        if (indexer is KSVariableName ksVariable)
+                        if (variableName.Type != KSType.Any && variableName.Type.ArrayDepth < 0 && variableName.Type != KSType.String)
                         {
-                            if (ksVariable.Variable.Type.IsArray && ksVariable.Variable.Type.ArrayDepth > 1)
-                            {
-                                //TODO: Nested arrays
-                                AddValidationException($"Nested arrays currently not validated", level: Level.Info);
-
-                                _iterator.SkipUntil(new HashSet<string> { ",", "}", ";" });
-                            }
-                            else if (indexer.Type == KSType.Object)
-                            {
-                                KSObject obj = ParseObjectProperties(ksVariable.Variable);
-                            }
-                        }
-
-                        if (indexer.Type != KSType.Number)
-                        {
-                            AddValidationException($"Expected 'num' found '{indexer.Type}'");
+                            AddValidationException($"Type '{variableName.Type}' can not be indexed");
                         }
 
                         _iterator.Next();
@@ -114,11 +95,30 @@ namespace KrunkScriptParser.Validator
             }
         }
 
-        private KSObject ParseObjectProperties(KSVariable variable)
+        private bool TryReadIndexer(out IKSValue value)
         {
-            KSObject ksObject = variable.Value as KSObject;
+            value = null;
 
-            return null;
+            if (_token.Value != "[")
+            {
+                return false;
+            }
+
+            _iterator.Next();
+
+            value = ParseExpression(depth: 1);
+
+            if (_token.Value != "]")
+            {
+                AddValidationException($"Missing end of indexer ']'");
+            }
+
+            if(value.Type != KSType.Number)
+            {
+                AddValidationException($"Array indexer expects type '{KSType.Number}'. Received '{value.Type}'");
+            }
+
+            return true;
         }
 
         private KSObject ParseObject(int depth = 0)
@@ -148,7 +148,7 @@ namespace KrunkScriptParser.Validator
                 _iterator.Next();
 
                 //KSExpression expression = ParseExpression(depth: depth + 1);
-                KSExpression expression = ParseExpressionNew(depth: depth + 1);
+                KSExpression expression = ParseExpression(depth: depth + 1);
 
                 expression.Type = KSType.Any;
 
@@ -254,16 +254,14 @@ namespace KrunkScriptParser.Validator
             //End of array declaration
             while (_token.Type != TokenTypes.Punctuation || _token.Value != "]")
             {
-                IKSValue value = ParseValue(depth + 1);
+                IKSValue value = ParseExpression(depth: depth + 1);
 
-                if (ksArray.Type != value.Type)
+                if (ksArray.Type.Name != value.Type.FullType)
                 {
                     AddValidationException($"Expected type '{ksArray.Type.Name}'. Received '{value.Type.FullType}'", level: Level.Error);
                 }
 
                 ksArray.Values.Add(value);
-
-                _iterator.Next();
 
                 if (_token.Type == TokenTypes.Punctuation)
                 {
@@ -273,6 +271,22 @@ namespace KrunkScriptParser.Validator
                     }
                     else if (_token.Value == "]")
                     {
+                        //PATCH: Has some more indexers
+                        while (_iterator.PeekNext().Value == "[")
+                        {
+                            _iterator.Next();
+
+                            if (TryReadIndexer(out IKSValue _))
+                            {
+                                ksArray.Type.DecreaseDepth();
+
+                                if(ksArray.Type.ArrayDepth < 0 && ksArray.Type != KSType.String) //Strings indexed returns strings which can be indexed
+                                {
+                                    AddValidationException($"Type '{ksArray.Type}' can not be indexed");
+                                }
+                            }
+                        }
+
                         return ksArray;
                     }
                     else
@@ -294,7 +308,9 @@ namespace KrunkScriptParser.Validator
             bool isObj = false;
             string name = initialToken.Value;
 
-            //Checks for methods/objects
+            Token lastIndexerToken = null;
+
+            //Checks for methods/objects/array indexes
             while (true)
             {
                 _iterator.Next();
@@ -303,17 +319,33 @@ namespace KrunkScriptParser.Validator
                     prev.Value == "." && (_token.Type == TokenTypes.Name || _token.Type == TokenTypes.GlobalObject))
                 {
                     isObj = true;
+                    lastIndexerToken = null;
 
                     name += _token.Value;
                 }
                 else if (_token.Value == "(")
                 {
                     isAction = true;
+                    lastIndexerToken = null;
 
                     break;
                 }
+                else if (_token.Value == "[" && isObj)
+                {
+                    lastIndexerToken = _token;
+
+                    TryReadIndexer(out IKSValue value);
+
+                    continue;
+                }
                 else
                 {
+                    //PATCH to handle all indexes in object properties. Should handle this as an operator
+                    if (lastIndexerToken != null)
+                    {
+                        _iterator.ReturnTo(lastIndexerToken);
+                    }
+
                     _iterator.Prev();
 
                     break;
@@ -334,7 +366,7 @@ namespace KrunkScriptParser.Validator
                 {
                     if (!TryGetDeclaration(initialToken.Value, out IKSValue value))
                     {
-                        AddValidationException($"Variable '{_token.Value}' not defined in this scope");
+                        AddValidationException($"Variable '{initialToken.Value}' not defined in this scope");
 
                         //Attempt to fix
                         //_iterator.SkipUntil(new HashSet<string> { ";", ",", "}" });

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using KrunkScriptParser.Models.Expressions;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,12 +7,12 @@ using System.Threading.Tasks;
 
 namespace KrunkScriptParser.Models.Blocks
 {
-    class ForceConversion : IExpressionItem
+    class ForceConversion : ExpressionItem
     {
         public bool IsConvert { get; set; }
         public KSType ReturnType { get; set; }
 
-        public override int Priority => IExpressionItem.MaxPriority - 1;
+        public override int Priority => ExpressionItem.MaxPriority - 1;
         public override bool HasType => true;
 
         public ForceConversion(KSType type, bool isConvert, KSType returnType = null)

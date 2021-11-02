@@ -9,8 +9,8 @@ namespace KrunkScriptParser.Models.Blocks
     public class KSType
     {
         public string Name { get; set; }
-        public bool IsArray { get; set; }
-        public int ArrayDepth { get; set; }
+        public bool IsArray => ArrayDepth > 0;
+        public int ArrayDepth { get; private set; }
 
         public string FullType
         {
@@ -20,17 +20,45 @@ namespace KrunkScriptParser.Models.Blocks
                 {
                     _fullType = $"{Name}";
 
-                    if (IsArray)
+                    for (int i = 0; i < ArrayDepth; i++)
                     {
-                        for (int i = 0; i < ArrayDepth; i++)
-                        {
-                            _fullType += "[]";
-                        }
+                        _fullType += "[]";
                     }
                 }
 
                 return _fullType;
             }
+        }
+
+        public KSType()
+        {
+        }
+
+        public KSType(KSType type)
+        {
+            if (type == null)
+            {
+                Name = KSType.Any.Name;
+            }
+            else
+            {
+                Name = type.Name;
+                ArrayDepth = type.ArrayDepth;
+            }
+        }
+
+        public void IncreaseDepth()
+        {
+            ArrayDepth++;
+
+            _fullType = string.Empty;
+        }
+
+        public void DecreaseDepth()
+        {
+            ArrayDepth--;
+
+            _fullType = string.Empty;
         }
 
         public override string ToString()

@@ -65,31 +65,54 @@ namespace KrunkScriptParser.Validator
 
             while (_token != null)
             {
+                Token currentToken = null;
+
                 try
                 {
-                    Token nextToken = _iterator.PeekNext();
+                    currentToken = _token;
+                    bool hasType = false;
 
-                    //Only variable declarations
-                    if (_token.Type == TokenTypes.Type && 
-                            nextToken?.Type != TokenTypes.Action && 
-                            nextToken?.Type != TokenTypes.Modifier)
+                    if(_token.Type == TokenTypes.Type)
                     {
-                        KSVariable variable = ParseVariableDeclaration();
-                    }
-                    else if (_token.Type == TokenTypes.Action || (_token.Type == TokenTypes.Type && 
-                            (nextToken?.Type == TokenTypes.Action || nextToken?.Type == TokenTypes.Modifier))) //Actions
-                    {
-                        KSAction action = ParseAction();
+                        //Parse type to see next token
+                        ParseType();
 
-                        AddDeclaration(action);
+                        hasType = true;
                     }
-                    else if (_token.Type == TokenTypes.Terminator ||_token.Value == "}") //Might be worth it to verify nothing was missed
+
+                    Token nextToken = _token;
+                    _iterator.ReturnTo(currentToken);
+
+                    if (hasType)
                     {
-                        _iterator.Next();
+                        if(nextToken.Type == TokenTypes.Name)
+                        {
+                            ParseVariableDeclaration();
+                        }
+                        else if(nextToken.Type == TokenTypes.Action)
+                        {
+                            KSAction action = ParseAction();
+
+                            AddDeclaration(action);
+                        }
+                        else
+                        {
+                            throw new ValidationException($"Unexpected input {nextToken.Value}. Expected variable name or action", nextToken.Line, nextToken.Column);
+                        }
                     }
                     else
                     {
-                        throw new ValidationException($"Unexpected input {_token.Value}. Expecting variable declaration or action", _token.Line, _token.Column);
+                        //Hook or action without return type
+                        if(nextToken.Type == TokenTypes.Action || nextToken.Value == "public")
+                        {
+                            KSAction action = ParseAction();
+
+                            AddDeclaration(action);
+                        }
+                        else
+                        {
+                            throw new ValidationException($"Unexpected input {nextToken.Value}. Expected 'public' or 'action'", nextToken.Line, nextToken.Column);
+                        }
                     }
                 }
                 catch (ValidationException ex)
@@ -129,8 +152,7 @@ namespace KrunkScriptParser.Validator
             //Checking for an array
             while (_token.Type == TokenTypes.Punctuation && _token.Value == "[")
             {
-                type.IsArray = true;
-                type.ArrayDepth++;
+                type.IncreaseDepth();
 
                 _iterator.Next();
 
@@ -206,7 +228,7 @@ namespace KrunkScriptParser.Validator
             _iterator.Next();
 
             //Expecting a value
-            KSExpression expression = ParseExpressionNew();
+            KSExpression expression = ParseExpression();
 
             variable.Value = expression;
 

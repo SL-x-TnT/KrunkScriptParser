@@ -97,7 +97,7 @@ namespace KrunkScriptParser.Validator
 
             while (_token.Value != ")" || _token.Value == ",")
             {
-                values.Add(ParseExpressionNew());
+                values.Add(ParseExpression());
 
                 if (_token.Value == ")")
                 {
