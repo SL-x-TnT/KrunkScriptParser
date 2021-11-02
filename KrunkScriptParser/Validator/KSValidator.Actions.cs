@@ -238,6 +238,7 @@ namespace KrunkScriptParser.Validator
         {
             int parameterIndex = 0;
             int expected = action.Parameters.Count(x => !x.Optional);
+            bool isMulti = false;
 
             foreach (KSExpression argument in arguments)
             {
@@ -266,9 +267,13 @@ namespace KrunkScriptParser.Validator
                 {
                     parameterIndex++;
                 }
+                else
+                {
+                    isMulti = true;
+                }
             }
 
-            if (parameterIndex < expected)
+            if (parameterIndex < expected && (!isMulti || parameterIndex + 1 < action.Parameters.Count))
             {
                 AddValidationException($"Invalid argument count. Received {arguments.Count} and expected {expected}");
             }

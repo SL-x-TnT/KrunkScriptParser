@@ -163,13 +163,13 @@ namespace KrunkScriptParser.Validator
                     }
                 }
 
-                //Expression parsing includes assignment operators
-                KSExpression expression = ParseExpression();
+                //Expression parsing includes assignment operators + methods
+                ParseExpression();
 
-                if(!expression.HasAssignment)
-                {
-                    //Shouldn't happen
-                }
+            }
+            else if(_token.Type == TokenTypes.GlobalObject) //Could probably throw this in there ^
+            {
+                ParseExpression();
             }
             else if(_token.Type == TokenTypes.KeyMethod)
             {

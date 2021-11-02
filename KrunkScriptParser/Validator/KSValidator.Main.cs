@@ -457,7 +457,6 @@ namespace KrunkScriptParser.Validator
 
             public Token Next(bool checkEOF = true)
             {
-                Console.WriteLine(_counter);
                 _counter = 0;
 
                 if(checkEOF)

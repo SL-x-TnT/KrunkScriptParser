@@ -37,8 +37,6 @@ namespace KrunkScriptParser.Validator
                 //Boolean conversion
                 if (_token.Value == "!")
                 {
-                    //convertType = "bool";
-                    //_iterator.Next();
                 }
             }
 
@@ -362,6 +360,9 @@ namespace KrunkScriptParser.Validator
                 {
                     //Maybe later add a "global" to variable object types
                     AddValidationException($"Action properties on objects currently not supported. Method: '{name}'", level: Level.Info);
+
+                    //Parse the arguments to get them out of the way
+                    List<IKSValue> arguments = ParseArguments();
                 }
                 else if (isObj)
                 {
