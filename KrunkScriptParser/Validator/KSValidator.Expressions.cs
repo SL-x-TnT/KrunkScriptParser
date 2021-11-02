@@ -97,6 +97,48 @@ namespace KrunkScriptParser.Validator
 
                 if(TryReadOperator(out op))
                 {
+                    if(op.IsAssignment)
+                    {
+                        if(expression.HasAssignment)
+                        {
+                            AddValidationException($"Invalid operator '{op.Operator}'", op.Line, op.Column);
+                        }
+                        else
+                        {
+                            bool hasVariable = false;
+                            bool showedError = false;
+
+                            foreach(ExpressionItem item in expression.Items)
+                            {
+                                if(item is ExpressionValue v)
+                                {
+                                    if (!hasVariable && v.Value is KSVariableName variable)
+                                    {
+                                        hasVariable = true;
+
+                                        continue;
+                                    }
+                                }
+                                else if(item is ForceConversion conversion && conversion.ValidLeftHand)
+                                {
+                                    continue;
+                                }
+
+                                showedError = true;
+                                AddValidationException($"Invalid left-hand side in assignment", item.Line, item.Column);
+
+                                break;
+                            }
+
+                            if(!hasVariable && !showedError)
+                            {
+                                AddValidationException($"Invalid left-hand side in assignment");
+                            }
+                        }
+
+                        expression.HasAssignment = true;
+                    }
+
                     expression.Items.Add(op);
                 }
                 else
@@ -302,7 +344,7 @@ namespace KrunkScriptParser.Validator
             {
                 _iterator.Next();
 
-                conversion = new ForceConversion(ParseType(), false);
+                conversion = new ForceConversion(ParseType(), false, null, true);
                 conversion.Line = _token.Line;
                 conversion.Column = _token.Column;
 
@@ -363,14 +405,22 @@ namespace KrunkScriptParser.Validator
 
             if (leftType != rightType)
             {
-                AddValidationException($"Mismatched types. Expected '{leftType?.FullType}'. Received '{leftType?.FullType} {op.Operator} {rightType?.FullType}'", op.Line, op.Column);
+                //Special condition
+                if (op.Operator != "=" || leftType != KSType.Any)
+                {
+                    AddValidationException($"Mismatched types. Expected '{leftType?.FullType}'. Received '{leftType?.FullType} {op.Operator} {rightType?.FullType}'", op.Line, op.Column);
+                }
             }
 
             if(!op.ValidTypes.Contains(rightType))
             {
-                string expected = $"'{String.Join("' or '", op.ValidTypes)}'";
+                //Special condition
+                if (op.Operator != "=" || leftType != KSType.Any)
+                {
+                    string expected = $"'{String.Join("' or '", op.ValidTypes)}'";
 
-                AddValidationException($"Expected {expected} with operator '{op.Operator}'. Received '{leftType.FullType} {op.Operator} {rightType.FullType}'", op.Line, op.Column);
+                    AddValidationException($"Expected {expected} with operator '{op.Operator}'. Received '{leftType.FullType} {op.Operator} {rightType.FullType}'", op.Line, op.Column);
+                }
             }
         }
 

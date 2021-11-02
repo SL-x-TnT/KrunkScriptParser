@@ -163,11 +163,13 @@ namespace KrunkScriptParser.Validator
                     }
                 }
 
-                //Variable assignment, including operators like +=
-                //TODO
-                _iterator.SkipUntil(TokenTypes.Terminator);
+                //Expression parsing includes assignment operators
+                KSExpression expression = ParseExpression();
 
-                //returnValue = ParseExpression();
+                if(!expression.HasAssignment)
+                {
+                    //Shouldn't happen
+                }
             }
             else if(_token.Type == TokenTypes.KeyMethod)
             {
@@ -273,30 +275,7 @@ namespace KrunkScriptParser.Validator
         {
             return null;
         }
-
-
-        /// <summary>
-        /// Parses built in array keywords (remove, lengthOf, addTo)
-        /// </summary>
-        /// <returns></returns>
-        private IKSValue ParseArrayMethod()
-        {
-            return null;
-        }
-
-        private bool IsArrayKeyword(string key)
-        {
-            switch(key)
-            {
-                case "remove":
-                case "lengthOf":
-                case "addTo":
-                    return true;
-            }
-
-            return false;
-        }
-
+        
         private bool IsLoopBlock(string key)
         {
             switch (key)

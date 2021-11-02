@@ -67,7 +67,7 @@ namespace KrunkScriptParser.Validator
                 {
                     _iterator.Next();
 
-                    while (TryReadIndexer(out IKSValue v))
+                    while (TryReadIndexer(out IKSValue _))
                     {
                         variableName.Type.DecreaseDepth();
 

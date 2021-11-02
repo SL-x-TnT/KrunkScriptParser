@@ -38,7 +38,7 @@ namespace KrunkScriptParser.Models.Blocks
         {
             if (type == null)
             {
-                Name = KSType.Any.Name;
+                Name = KSType.Unknown.Name;
             }
             else
             {

@@ -9,10 +9,28 @@ namespace KrunkScriptParser.Models.Expressions
 {
     public class ExpressionOperator : ExpressionItem
     {
+        private static Dictionary<string, HashSet<KSType>> _assignmentOperators = new Dictionary<string, HashSet<KSType>>
+        {
+            { "+", new HashSet<KSType>{KSType.String, KSType.Number } },
+            {"-", new HashSet<KSType>{KSType.String, KSType.Number } },
+            {"**", new HashSet<KSType>{ KSType.Number } },
+            {"*", new HashSet<KSType>{ KSType.Number } },
+            {"/", new HashSet<KSType>{KSType.Number } } ,
+            {"%",  new HashSet<KSType>{KSType.Number } },
+            {"<<", new HashSet<KSType>{KSType.Number } },
+            {">>", new HashSet<KSType>{ KSType.Number } },
+            {">>>", new HashSet<KSType>{ KSType.Number } },
+            {"|", new HashSet<KSType>{KSType.Bool } },
+            {"&&", new HashSet<KSType>{KSType.Bool } },
+            {"||", new HashSet<KSType>{KSType.Bool } },
+            {"=", new HashSet<KSType>{KSType.Bool, KSType.String, KSType.Bool, KSType.Any, KSType.Number, KSType.Object } }
+        };
+
         public string Operator { get; set; }
         public HashSet<KSType> ValidTypes { get; private set; } = new HashSet<KSType>();
         public bool ArrayValid { get; private set; }
         public KSType ReturnType { get; set; }
+        public bool IsAssignment { get; set; }
 
         public ExpressionOperator(string op)
         {
@@ -25,36 +43,33 @@ namespace KrunkScriptParser.Models.Expressions
             //Groups are the top priority
             switch (Operator ?? "")
             {
-                case ".": //Member access
+                case ".": //Member access -- Not used yet
                     ValidTypes.Add(KSType.Object);
                     ValidTypes.Add(KSType.Any);
                     Priority = MaxPriority - 1;
                     ReturnType = KSType.Any;
                     break;
-                case "[": //Array index
+                case "[": //Array index -- Not used yet
                     ValidTypes.Add(KSType.Any);
                     ArrayValid = true;
                     Priority = MaxPriority - 1;
                     break;
                 case "**": //Power
-                    ValidTypes.Add(KSType.Number);
+                    ValidTypes = _assignmentOperators[Operator];
                     Priority = MaxPriority - 2;
                     break;
                 case "+":
-                    ValidTypes.Add(KSType.Number);
-                    ValidTypes.Add(KSType.String);
-                    Priority = MaxPriority - 3;
-                    break;
                 case "-":
                 case "/":
+                case "%":
                 case "*":
-                    ValidTypes.Add(KSType.Number);
+                    ValidTypes = _assignmentOperators[Operator];
                     Priority = MaxPriority - 3;
                     break;
                 case "<<":
                 case ">>":
                 case ">>>":
-                    ValidTypes.Add(KSType.Number);
+                    ValidTypes = _assignmentOperators[Operator];
                     Priority = MaxPriority - 4;
                     break;
                 case ">":
@@ -75,11 +90,30 @@ namespace KrunkScriptParser.Models.Expressions
                     break;
                 case "&&":
                 case "||":
-                    ValidTypes.Add(KSType.Bool);
+                    ValidTypes = _assignmentOperators[Operator];
                     ReturnType = KSType.Bool;
                     Priority = MaxPriority - 7;
                     break;
                 default:
+                    //Possibly assignment operators
+                    if(Operator?.EndsWith("=") == true)
+                    {
+                        string op = Operator;
+
+                        if (op.Length > 1)
+                        {
+                            op = Operator[0..^1];
+                        }
+
+                        if (_assignmentOperators.TryGetValue(op, out HashSet<KSType> validTypes))
+                        {
+                            IsAssignment = true;
+                            ValidTypes = validTypes;
+                            Priority = MaxPriority - 8;
+                            break;
+                        }
+                    }
+
                     Priority = int.MaxValue; //Invalid operators
                     break;
             }

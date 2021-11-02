@@ -8,6 +8,8 @@ namespace KrunkScript
 {
     class Program
     {
+        private static int _lastLine = 0;
+
         static void Main(string[] args)
         {
             KSValidator validator = new KSValidator(File.ReadAllText("client.krnk"));
@@ -25,9 +27,19 @@ namespace KrunkScript
 
             Console.ForegroundColor = e.Level == Level.Error ? ConsoleColor.Red : 
                 e.Level == Level.Warning ? ConsoleColor.Yellow : ConsoleColor.Gray;
-            Console.WriteLine(e);
 
+            if (_lastLine == e.LineNumber)
+            {
+                Console.Write("\t");
+                Console.WriteLine($"({e.LineNumber}:{e.ColumnNumber}) {e.Message}");
+            }
+            else
+            {
+                Console.WriteLine(e);
+            }
             Console.ForegroundColor = prevColor;
+
+            _lastLine = e.LineNumber;
         }
     }
 }
