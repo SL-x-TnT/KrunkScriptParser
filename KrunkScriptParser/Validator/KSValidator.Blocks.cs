@@ -27,7 +27,7 @@ namespace KrunkScriptParser.Validator
                 _iterator.Next();
             }
 
-            AddNewScopeLevel();
+            AddNewScopeLevel(block);
 
             //Add variables created in parameter/for statement
             if (variables != null)
@@ -137,7 +137,17 @@ namespace KrunkScriptParser.Validator
                 }
                 else if (IsLoopBlock(key))
                 {
+                    return ParseLoopBlock(key);
+                }
+                else if (key == "break" || key == "continue")
+                {
+                    _iterator.Next();
 
+                    if (_blockNode.Value.Keyword != "while" &&
+                        _blockNode.Value.Keyword != "for")
+                    {
+                        AddValidationException($"Invalid call to '{key}' inside '{_blockNode.Value.Keyword}' statement");
+                    }
                 }
             }
             else if (_token.Type == TokenTypes.Type)
@@ -233,7 +243,7 @@ namespace KrunkScriptParser.Validator
         }
 
         /// <summary>
-        /// Parses a block from a keyword (if, else if, else)
+        /// Parses a block from a keyword (if, else if, else, while)
         /// </summary>
         private KSBlock ParseConditionalBlock(string key)
         {
@@ -286,7 +296,104 @@ namespace KrunkScriptParser.Validator
 
         private KSBlock ParseLoopBlock(string key)
         {
-            return null;
+            KSLoopBlock block = new KSLoopBlock
+            {
+                Key = key,
+                Line = _token.Line,
+                Column = _token.Column
+            };
+
+            //PATCH: Dealing with if statement assignments in their (). A new level won't hurt anything
+            AddNewScopeLevel(new KSBlock { Keyword = key });
+
+            try
+            {
+                _iterator.Next();
+
+                if (_token.Value != "(")
+                {
+                    AddValidationException($"Missing start of '{key}' statement condition '('");
+
+                    _iterator.SkipUntil(new HashSet<string> { "{" });
+                }
+                else
+                {
+                    _iterator.Next();
+
+                    if (key == "while")
+                    {
+                        block.Condition = ParseExpression();
+                    }
+                    else if (key == "for")
+                    {
+                        if (_token.Type == TokenTypes.Type)
+                        {
+                            //Handles the terminator
+                            block.Assignment = ParseVariableDeclaration();
+                        }
+                        else //Simple assignment
+                        {
+                            block.Assignment = ParseExpression();
+
+                            if (_token.Type != TokenTypes.Terminator)
+                            {
+                                AddValidationException($"Missing ';' in '{key}' statement");
+                            }
+                            else
+                            {
+                                _iterator.Next();
+                            }
+                        }
+
+                        //Condition
+                        block.Condition = ParseExpression();
+
+                        if (_token.Type != TokenTypes.Terminator)
+                        {
+                            AddValidationException($"Missing ';' in '{key}' statement");
+                        }
+
+                        if(block.Condition.Type != KSType.Bool)
+                        {
+                            AddValidationException($"Condition in '{key}' statement must return type '{KSType.Bool}'");
+                        }
+
+                        _iterator.Next();
+
+                        //Increment (after loop)
+                        block.Increment = ParseExpression();
+
+                        if (!block.Increment.HasAssignment && !block.Increment.HasPostfix)
+                        {
+                            AddValidationException($"Missing assignment in '{key}' statement");
+                        }
+                    }
+
+                    if (_token.Value != ")")
+                    {
+                        AddValidationException($"Missing end of '{key}' statement condition ')'");
+                    }
+                    else
+                    {
+                        _iterator.Next();
+                    }
+
+                    if (block.Condition.Type != KSType.Bool)
+                    {
+                        AddValidationException($"if/else if statement conditions require type '{KSType.Bool}'. Received '{block.Condition.Type}'");
+                    }
+                }
+
+                KSBlock ksBlock = ParseBlock(key);
+
+                block.Lines.AddRange(ksBlock.Lines);
+            }
+            finally
+            {
+                RemoveScopeLevel(); //Making sure this level is removed
+            }
+
+            return block;
         }
         
         private bool IsLoopBlock(string key)

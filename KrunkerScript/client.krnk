@@ -4,19 +4,19 @@
 
 #num[] arr = num[1,2,3,4];
 #bool test = GAME.PLAYERS.findByID("1") == "1";
-obj test = GAME.PLAYERS.list()[0];
+#obj test = GAME.PLAYERS.list()[0];
 #num test = a[0];
 #num test = a.a[0].b["0"].c[0];
-num a = 1;
+#num a = 1;
 #num test = 1 + -a;
 
 #str test = (num)(toStr (GAME.PLAYERS.findByID("1")) + toNum "s");
 #str g = (num)(toStr (1) + toStr 1);
-num[] aaa = num[1, 2, 3];
+#num[] aaa = num[1, 2, 3];
 
-num[] action test() {
-	test();
-}
+#num[] action test() {
+#	test();
+#}
 
 obj consoleMenu_config = {
 	menuKey: "`",           # Key used to open menu
@@ -68,7 +68,6 @@ obj consoleMenu_menuState = {
 	}
 };
 bool action consoleMenu_hasMenuEnabled() {
-
 	return (bool)consoleMenu_menuState.enabled;
 }
 

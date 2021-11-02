@@ -14,6 +14,8 @@ namespace KrunkScriptParser.Models.Blocks
         public override bool HasType => true;
         public List<ExpressionItem> Items { get; private set; } = new List<ExpressionItem>();
         public bool HasAssignment { get; set; }
+        public bool HasPostfix { get; set; }
+
         public KSExpression()
         {
             Priority = MaxPriority;

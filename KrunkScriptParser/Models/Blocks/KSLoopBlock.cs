@@ -8,6 +8,7 @@ namespace KrunkScriptParser.Models.Blocks
 {
     public class KSLoopBlock : KSBlock
     {
+        public string Key { get; set; }
         public IKSValue Assignment { get; set; } //For loops 
         public KSExpression Condition { get; set; }
         public KSExpression Increment { get; set; }//For loops 

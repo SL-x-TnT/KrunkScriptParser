@@ -23,7 +23,9 @@ namespace KrunkScriptParser.Models.Expressions
             {"|", new HashSet<KSType>{KSType.Bool } },
             {"&&", new HashSet<KSType>{KSType.Bool } },
             {"||", new HashSet<KSType>{KSType.Bool } },
-            {"=", new HashSet<KSType>{KSType.Bool, KSType.String, KSType.Bool, KSType.Any, KSType.Number, KSType.Object } }
+            {"=", new HashSet<KSType>{KSType.Bool, KSType.String, KSType.Bool, KSType.Any, KSType.Number, KSType.Object } },
+            {"++", new HashSet<KSType>{KSType.Number } },
+            {"--", new HashSet<KSType>{KSType.Number } },
         };
 
         public string Operator { get; set; }
@@ -31,6 +33,7 @@ namespace KrunkScriptParser.Models.Expressions
         public bool ArrayValid { get; private set; }
         public KSType ReturnType { get; set; }
         public bool IsAssignment { get; set; }
+        public bool IsPostfix => Operator == "++" || Operator == "--";
 
         public ExpressionOperator(string op)
         {
@@ -54,9 +57,14 @@ namespace KrunkScriptParser.Models.Expressions
                     ArrayValid = true;
                     Priority = MaxPriority - 1;
                     break;
-                case "**": //Power
+                case "++":
+                case "--":
                     ValidTypes = _assignmentOperators[Operator];
                     Priority = MaxPriority - 2;
+                    break;
+                case "**": //Power
+                    ValidTypes = _assignmentOperators[Operator];
+                    Priority = MaxPriority - 3;
                     break;
                 case "+":
                 case "-":
@@ -64,13 +72,13 @@ namespace KrunkScriptParser.Models.Expressions
                 case "%":
                 case "*":
                     ValidTypes = _assignmentOperators[Operator];
-                    Priority = MaxPriority - 3;
+                    Priority = MaxPriority - 4;
                     break;
                 case "<<":
                 case ">>":
                 case ">>>":
                     ValidTypes = _assignmentOperators[Operator];
-                    Priority = MaxPriority - 4;
+                    Priority = MaxPriority - 5;
                     break;
                 case ">":
                 case "<":
@@ -78,7 +86,7 @@ namespace KrunkScriptParser.Models.Expressions
                 case "<=":
                     ValidTypes.Add(KSType.Number);
                     ReturnType = KSType.Bool;
-                    Priority = MaxPriority - 5;
+                    Priority = MaxPriority - 6;
                     break;
                 case "==":
                 case "!=":
@@ -86,13 +94,13 @@ namespace KrunkScriptParser.Models.Expressions
                     ValidTypes.Add(KSType.String);
                     ValidTypes.Add(KSType.Number);
                     ReturnType = KSType.Bool;
-                    Priority = MaxPriority - 6;
+                    Priority = MaxPriority - 7;
                     break;
                 case "&&":
                 case "||":
                     ValidTypes = _assignmentOperators[Operator];
                     ReturnType = KSType.Bool;
-                    Priority = MaxPriority - 7;
+                    Priority = MaxPriority - 8;
                     break;
                 default:
                     //Possibly assignment operators
@@ -109,7 +117,7 @@ namespace KrunkScriptParser.Models.Expressions
                         {
                             IsAssignment = true;
                             ValidTypes = validTypes;
-                            Priority = MaxPriority - 8;
+                            Priority = MaxPriority - 9;
                             break;
                         }
                     }

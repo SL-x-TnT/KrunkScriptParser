@@ -138,6 +138,40 @@ namespace KrunkScriptParser.Validator
 
                         expression.HasAssignment = true;
                     }
+                    else if(op.IsPostfix)
+                    {
+                        bool hasVariable = false;
+                        bool showedError = false;
+
+                        foreach (ExpressionItem item in expression.Items)
+                        {
+                            if (item is ExpressionValue v)
+                            {
+                                if (!hasVariable && v.Value is KSVariableName variable)
+                                {
+                                    hasVariable = true;
+
+                                    continue;
+                                }
+                            }
+                            else if (item is ForceConversion conversion && conversion.ReturnType == KSType.Number)
+                            {
+                                continue;
+                            }
+
+                            showedError = true;
+                            AddValidationException($"Invalid input with {op.Operator}", item.Line, item.Column);
+
+                            break;
+                        }
+
+                        if (!hasVariable && !showedError)
+                        {
+                            AddValidationException($"Invalid input with {op.Operator}");
+                        }
+
+                        expression.HasPostfix = true;
+                    }
 
                     expression.Items.Add(op);
                 }
@@ -189,7 +223,7 @@ namespace KrunkScriptParser.Validator
             {
                 LinkedListNode<ExpressionItem> currentNode = linkedList.First;
 
-                while(currentNode != linkedList.Last && currentNode != null)
+                while(currentNode != null)
                 {
                     if(currentNode.Value.Priority == currentPriority)
                     {
@@ -390,20 +424,27 @@ namespace KrunkScriptParser.Validator
 
         private void ValidateValues(ExpressionOperator op, ExpressionItem left, ExpressionItem right)
         {
-            if(!left.HasType)
+            if(left?.HasType == false)
             {
                 AddValidationException($"Expected a value with a type", left.Line, left.Column, willThrow: true);
             }
 
-            if (!right.HasType)
+            if (right?.HasType == false)
             {
                 AddValidationException($"Expected a value with a type", left.Line, left.Column, willThrow: true);
             }
 
-            KSType leftType = left.Type;
-            KSType rightType = right.Type;
+            KSType leftType = left?.Type ?? KSType.Unknown;
+            KSType rightType = right?.Type ?? KSType.Unknown;
 
-            if (leftType != rightType)
+            if(op.IsPostfix)
+            {
+                if(leftType != KSType.Number)
+                {
+                    AddValidationException($"Mismatched type. Expected '{KSType.Number}'. Received '{leftType?.FullType}{op.Operator}'", op.Line, op.Column);
+                }
+            }
+            else if (leftType != rightType)
             {
                 //Special condition
                 if (op.Operator != "=" || leftType != KSType.Any)
@@ -412,7 +453,7 @@ namespace KrunkScriptParser.Validator
                 }
             }
 
-            if(!op.ValidTypes.Contains(rightType))
+            if(!op.IsPostfix && !op.ValidTypes.Contains(rightType))
             {
                 //Special condition
                 if (op.Operator != "=" || leftType != KSType.Any)

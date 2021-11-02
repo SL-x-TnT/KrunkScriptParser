@@ -17,6 +17,8 @@ namespace KrunkScriptParser.Validator
 
         private LinkedList<Dictionary<string, IKSValue>> _declarations = new LinkedList<Dictionary<string, IKSValue>>();
         private LinkedListNode<Dictionary<string, IKSValue>> _declarationNode;
+        private LinkedList<KSBlock> _blocks = new LinkedList<KSBlock>();
+        private LinkedListNode<KSBlock> _blockNode;
 
         private Dictionary<string, IKSValue> _krunkerGlobalVariables = new Dictionary<string, IKSValue>();
 
@@ -62,6 +64,10 @@ namespace KrunkScriptParser.Validator
             //Variables
             _declarationNode = new LinkedListNode<Dictionary<string, IKSValue>>(new Dictionary<string, IKSValue>());
             _declarations.AddFirst(_declarationNode);
+
+            //Blocks to determine whether continue/break statements are valid
+            _blockNode = new LinkedListNode<KSBlock>(new KSBlock { Keyword = "global" });
+            _blocks.AddFirst(_blockNode);
 
             while (_token != null)
             {
@@ -232,7 +238,12 @@ namespace KrunkScriptParser.Validator
 
             if (variable.Type.FullType != expression.Type.FullType)
             {
-                AddValidationException($"Variable '{variable.Name}' expected type '{variable.Type.FullType}'. Received '{expression.Type.FullType}'", level: Level.Error);
+                AddValidationException($"Variable '{variable.Name}' expected type '{variable.Type.FullType}'. Received '{expression.Type.FullType}'");
+            }
+
+            if(expression.HasPostfix)
+            {
+                AddValidationException($"Postfix increment/decrement can not currently be assigned to a variable or used in an expression");
             }
 
             //Line terminator
@@ -342,10 +353,13 @@ namespace KrunkScriptParser.Validator
         /// <summary>
         /// Adds a new scope level for variable declarations. Called when entering a new block (actions, if, else, for, while, etc)
         /// </summary>
-        private void AddNewScopeLevel()
+        private void AddNewScopeLevel(KSBlock block)
         {
             _declarationNode = new LinkedListNode<Dictionary<string, IKSValue>>(new Dictionary<string, IKSValue>());
             _declarations.AddLast(_declarationNode);
+
+            _blockNode = new LinkedListNode<KSBlock>(block);
+            _blocks.AddLast(_blockNode);
         }
 
         /// <summary>
@@ -356,6 +370,9 @@ namespace KrunkScriptParser.Validator
             //Add info warning for declared variables that weren't used
             _declarations.RemoveLast();
             _declarationNode = _declarations.Last;
+
+            _blocks.RemoveLast();
+            _blockNode = _blocks.Last;
         }
 
         /// <summary>
@@ -461,7 +478,7 @@ namespace KrunkScriptParser.Validator
 
                 if(checkEOF)
                 {
-                    if(_token.Next == null)
+                    if(_token == null)
                     {
                         throw new ValidationException("Unexpected end of file", _token.Line, _token.Column);
                     }
