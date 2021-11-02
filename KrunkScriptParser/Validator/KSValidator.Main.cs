@@ -314,7 +314,7 @@ namespace KrunkScriptParser.Validator
             //Variable name is declared higher up, but that's valid
             if(alreadyDeclared)
             {
-                AddValidationException($"Variable '{name}' hiding previously declared variable", level: Level.Info);
+                AddValidationException($"Variable '{name}' hiding previously declared variable", level: Level.Warning);
             }
         }
 

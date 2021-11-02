@@ -138,7 +138,7 @@ namespace KrunkScriptParser.Validator
                 _iterator.Next();
 
                 //Expecting :
-                if (_token.Type != TokenTypes.Punctuation || _token.Value != ":")
+                if (_token.Value != ":")
                 {
                     AddValidationException($"Expected ':' found '{_token.Value}'", willThrow: true);
                 }

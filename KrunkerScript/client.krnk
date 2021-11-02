@@ -14,9 +14,10 @@
 #str g = (num)(toStr (1) + toStr 1);
 #num[] aaa = num[1, 2, 3];
 
-#num[] action test() {
-#	test();
-#}
+ action test() {
+
+	str a = "a" + true ? "a" : "b";
+}
 
 obj consoleMenu_config = {
 	menuKey: "`",           # Key used to open menu

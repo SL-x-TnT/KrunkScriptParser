@@ -21,8 +21,8 @@ namespace KrunkScriptParser.Helpers
         private static readonly HashSet<string> _modifierKeywords = new HashSet<string> { "public", "static" };
         private static readonly HashSet<string> _typeKeywords = new HashSet<string> { "obj", "num", "str", "bool" };
         private static readonly HashSet<string> _boolean = new HashSet<string> { "true", "false" };
-        private static readonly HashSet<char> _puctuation = new HashSet<char> { '(', ')', '[', ']', '{', '}', ',', ':', '.', '?' };
-        private static readonly HashSet<char> _operators = new HashSet<char> { '+', '-', '*', '/', '<', '>', '!', '&', '|' };
+        private static readonly HashSet<char> _puctuation = new HashSet<char> { '(', ')', '[', ']', '{', '}', ',', '.' };
+        private static readonly HashSet<char> _operators = new HashSet<char> { '+', '-', '*', '/', '<', '>', '!', '&', '|', '?', ':' };
         private static readonly HashSet<string> _keywords = new HashSet<string> { "if", "while", "else", "for", "break", "continue", "return" };
         private static readonly HashSet<string> _methods = new HashSet<string> { "addTo", "remove", "lengthOf", "notEmpty", "toStr", "toNum" };
         private static readonly HashSet<string> _globalObjects = new HashSet<string> { "GAME", "UTILS", "Math"};

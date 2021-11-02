@@ -20,7 +20,7 @@ namespace KrunkScript
 
             validator.Validate();
 
-            Console.WriteLine($"\tValidation completed in {sw.ElapsedMilliseconds}ms");
+            Console.WriteLine($"\nValidation completed in {sw.ElapsedMilliseconds}ms");
             Console.ReadLine();
         }
 
@@ -29,7 +29,7 @@ namespace KrunkScript
             ConsoleColor prevColor = Console.ForegroundColor;
 
             Console.ForegroundColor = e.Level == Level.Error ? ConsoleColor.Red : 
-                e.Level == Level.Warning ? ConsoleColor.Yellow : ConsoleColor.Gray;
+                e.Level == Level.Warning ? ConsoleColor.Yellow : ConsoleColor.Cyan;
             
             if (_lastLine == e.LineNumber)
             {
@@ -38,6 +38,7 @@ namespace KrunkScript
             }
             else
             {
+                Console.WriteLine();
                 Console.WriteLine(e);
             }
 

@@ -9,6 +9,7 @@ namespace KrunkScriptParser.Models.Expressions
 {
     public class ExpressionOperator : ExpressionItem
     {
+        private static HashSet<KSType> _allTypes = new HashSet<KSType> { KSType.Bool, KSType.String, KSType.Bool, KSType.Any, KSType.Number, KSType.Object };
         private static Dictionary<string, HashSet<KSType>> _assignmentOperators = new Dictionary<string, HashSet<KSType>>
         {
             { "+", new HashSet<KSType>{KSType.String, KSType.Number } },
@@ -23,10 +24,11 @@ namespace KrunkScriptParser.Models.Expressions
             {"|", new HashSet<KSType>{KSType.Bool } },
             {"&&", new HashSet<KSType>{KSType.Bool } },
             {"||", new HashSet<KSType>{KSType.Bool } },
-            {"=", new HashSet<KSType>{KSType.Bool, KSType.String, KSType.Bool, KSType.Any, KSType.Number, KSType.Object } },
+            {"=", _allTypes},
             {"++", new HashSet<KSType>{KSType.Number } },
             {"--", new HashSet<KSType>{KSType.Number } },
         };
+
 
         public string Operator { get; set; }
         public HashSet<KSType> ValidTypes { get; private set; } = new HashSet<KSType>();
@@ -34,6 +36,7 @@ namespace KrunkScriptParser.Models.Expressions
         public KSType ReturnType { get; set; }
         public bool IsAssignment { get; set; }
         public bool IsPostfix => Operator == "++" || Operator == "--";
+        public bool IsTernaryCondition => Operator == "?";
 
         public ExpressionOperator(string op)
         {
@@ -102,6 +105,14 @@ namespace KrunkScriptParser.Models.Expressions
                     ReturnType = KSType.Bool;
                     Priority = MaxPriority - 8;
                     break;
+                case "?": //Ternary (condition ? true : false)
+                    ValidTypes.Add(KSType.Bool);
+                    Priority = MaxPriority - 9;
+                    break;
+                case ":": //
+                    ValidTypes = _allTypes;
+                    Priority = MaxPriority - 9;
+                    break;
                 default:
                     //Possibly assignment operators
                     if(Operator?.EndsWith("=") == true)
@@ -117,7 +128,7 @@ namespace KrunkScriptParser.Models.Expressions
                         {
                             IsAssignment = true;
                             ValidTypes = validTypes;
-                            Priority = MaxPriority - 9;
+                            Priority = MaxPriority - 10;
                             break;
                         }
                     }

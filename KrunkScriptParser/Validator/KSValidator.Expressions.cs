@@ -227,15 +227,20 @@ namespace KrunkScriptParser.Validator
                 {
                     if(currentNode.Value.Priority == currentPriority)
                     {
-                        if(currentNode.Value is ForceConversion forceConversion)
+                        if (currentNode.Value is ForceConversion forceConversion)
                         {
                             currentNode = HandleConversion(currentNode);
                             currentType = currentNode.Value.Type;
                         }
-                        else if(currentNode.Value is ExpressionOperator op)
+                        else if (currentNode.Value is ExpressionOperator op)
                         {
                             ExpressionItem leftItem = currentNode.Previous?.Value;
-                            ExpressionItem rightItem = currentNode.Next?.Value;
+                            ExpressionItem rightItem = null;
+
+                            if (!op.IsTernaryCondition)
+                            {
+                                rightItem = currentNode.Next?.Value;
+                            }
 
                             ValidateValues(op, leftItem, rightItem);
 
@@ -249,18 +254,31 @@ namespace KrunkScriptParser.Validator
                                 currentType = leftItem.Type; //Uses left type as it either failed validation or they're the same
                             }
 
-                            //Add new node
-                            LinkedListNode<ExpressionItem> newNode = linkedList.AddAfter(currentNode, new ExpressionValue
+
+                            LinkedListNode<ExpressionItem> newNode = new LinkedListNode<ExpressionItem>(new ExpressionValue
                             {
-                                Type = currentType,
+                                Type = currentType
                             });
 
-                            //Remove the 3 nodes and add own
+                            LinkedListNode<ExpressionItem> prevNode = currentNode;
+
+                            //Add new node, if it's not a ternary '?' op
+                            if (!op.IsTernaryCondition)
+                            {
+                                linkedList.AddAfter(currentNode, newNode);
+                                currentNode = newNode;
+                            }
+                            else
+                            {
+                                currentNode = currentNode.Next;
+                            }
+
+
+                            //Remove the nodes used
                             linkedList.Remove(leftItem);
                             linkedList.Remove(rightItem);
-                            linkedList.Remove(currentNode);
+                            linkedList.Remove(prevNode);
 
-                            currentNode = newNode;
                         }
                         else if (currentNode.Value is KSExpression expression)
                         {
@@ -436,6 +454,7 @@ namespace KrunkScriptParser.Validator
 
             KSType leftType = left?.Type ?? KSType.Unknown;
             KSType rightType = right?.Type ?? KSType.Unknown;
+            bool showedError = false;
 
             if(op.IsPostfix)
             {
@@ -444,23 +463,35 @@ namespace KrunkScriptParser.Validator
                     AddValidationException($"Mismatched type. Expected '{KSType.Number}'. Received '{leftType?.FullType}{op.Operator}'", op.Line, op.Column);
                 }
             }
+            else if (op.IsTernaryCondition)
+            {
+                if(leftType != KSType.Bool)
+                {
+                    AddValidationException($"Invalid ternary condition. Expected '{KSType.Bool}'. Received '{leftType?.FullType}'", op.Line, op.Column);
+                }
+            }
             else if (leftType != rightType)
             {
                 //Special condition
                 if (op.Operator != "=" || leftType != KSType.Any)
                 {
                     AddValidationException($"Mismatched types. Expected '{leftType?.FullType}'. Received '{leftType?.FullType} {op.Operator} {rightType?.FullType}'", op.Line, op.Column);
+
+                    showedError = true;
                 }
             }
 
-            if(!op.IsPostfix && !op.ValidTypes.Contains(rightType))
+            if(!op.IsTernaryCondition && !op.IsPostfix && !op.ValidTypes.Contains(rightType))
             {
                 //Special condition
                 if (op.Operator != "=" || leftType != KSType.Any)
                 {
-                    string expected = $"'{String.Join("' or '", op.ValidTypes)}'";
+                    if (!showedError)
+                    {
+                        string expected = $"'{String.Join("' or '", op.ValidTypes)}'";
 
-                    AddValidationException($"Expected {expected} with operator '{op.Operator}'. Received '{leftType.FullType} {op.Operator} {rightType.FullType}'", op.Line, op.Column);
+                        AddValidationException($"Expected {expected} with operator '{op.Operator}'. Received '{leftType.FullType} {op.Operator} {rightType.FullType}'", op.Line, op.Column);
+                    }
                 }
             }
         }
