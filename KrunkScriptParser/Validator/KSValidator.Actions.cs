@@ -13,10 +13,11 @@ namespace KrunkScriptParser.Validator
     {
         private KSAction ParseAction()
         {
-            KSAction action = new KSAction();
-
-            int line = _token.Line;
-            int column = _token.Column;
+            KSAction action = new KSAction
+            {
+                Line = _token.Line,
+                Column = _token.Column
+            };
 
             if(_token.Value == "public")
             {
@@ -49,7 +50,9 @@ namespace KrunkScriptParser.Validator
                 _iterator.Next();
             }
 
-            if(_token.Value != "(")
+            AddDeclaration(action);
+
+            if (_token.Value != "(")
             {
                 AddValidationException($"Expected start of parameters '('. Received '{_token.Value}'", willThrow: true);
             }
@@ -75,7 +78,7 @@ namespace KrunkScriptParser.Validator
 
             if(action.Type != KSType.Void && !action.Block.Lines.Any(x => x is KSStatement statement && statement.IsReturn))
             {
-                AddValidationException($"Action '{action.Name}' missing return statement", line, column);
+                AddValidationException($"Action '{action.Name}' missing return statement", action.Line, action.Column);
             }
 
             foreach(KSStatement statement in action.GetInvalidReturns())

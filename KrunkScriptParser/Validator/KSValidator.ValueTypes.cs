@@ -360,7 +360,8 @@ namespace KrunkScriptParser.Validator
             {
                 if (isAction && isObj)
                 {
-                    AddValidationException($"Action properties on objects currently not supported");
+                    //Maybe later add a "global" to variable object types
+                    AddValidationException($"Action properties on objects currently not supported. Method: '{name}'", level: Level.Info);
                 }
                 else if (isObj)
                 {
@@ -395,9 +396,9 @@ namespace KrunkScriptParser.Validator
                         return null;
                     }
 
-                    if (!(foundAction is KSAction))
+                    if (foundAction is not KSAction)
                     {
-                        AddValidationException($"'{_token.Value}' is not an action");
+                        AddValidationException($"'{initialToken.Value}' is not an action");
 
                         return null;
                     }

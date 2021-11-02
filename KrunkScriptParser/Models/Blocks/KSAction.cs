@@ -16,6 +16,8 @@ namespace KrunkScriptParser.Models.Blocks
         public KSBlock Block { get; set; }
         public bool HasAReturn { get; set; }
         public bool WasCalled { get; set; }
+        public int Line { get; set; }
+        public int Column { get; set; }
 
         public IEnumerable<KSStatement> GetInvalidReturns()
         {

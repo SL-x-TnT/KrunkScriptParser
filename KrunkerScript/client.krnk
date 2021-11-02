@@ -15,7 +15,7 @@ num a = 1;
 num[] aaa = num[1, 2, 3];
 
 num[] action test() {
-	 a = (num)test.a = 2;
+	test();
 }
 
 obj consoleMenu_config = {

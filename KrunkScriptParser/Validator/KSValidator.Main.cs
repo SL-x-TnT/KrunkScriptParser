@@ -91,9 +91,7 @@ namespace KrunkScriptParser.Validator
                         }
                         else if(nextToken.Type == TokenTypes.Action)
                         {
-                            KSAction action = ParseAction();
-
-                            AddDeclaration(action);
+                            ParseAction();
                         }
                         else
                         {
@@ -106,8 +104,6 @@ namespace KrunkScriptParser.Validator
                         if(nextToken.Type == TokenTypes.Action || nextToken.Value == "public")
                         {
                             KSAction action = ParseAction();
-
-                            AddDeclaration(action);
                         }
                         else
                         {
@@ -179,7 +175,9 @@ namespace KrunkScriptParser.Validator
         {
             KSVariable variable = new KSVariable
             {
-                Type = ParseType()
+                Type = ParseType(),
+                Line = _token.Line,
+                Column = _token.Column
             };
 
             //Expecting a name
@@ -295,7 +293,9 @@ namespace KrunkScriptParser.Validator
 
             if(!_declarationNode.Value.TryAdd(name, variable))
             {
-                AddValidationException($"Variable/Action '{name}' has already been declared");
+                IKSValue value = _declarationNode.Value[name];
+
+                AddValidationException($"Variable/Action '{name}' has already been declared ({value.Line}:{value.Column})");
 
                 return;
             }

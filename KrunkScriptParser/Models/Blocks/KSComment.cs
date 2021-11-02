@@ -12,5 +12,7 @@ namespace KrunkScriptParser.Models.Blocks
     {
         public string Text { get; private set; }
         public KSType Type { get; set; }
+        public int Line { get; set; }
+        public int Column { get; set; }
     }
 }

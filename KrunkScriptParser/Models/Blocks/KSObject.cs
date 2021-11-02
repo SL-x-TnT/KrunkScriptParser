@@ -10,5 +10,7 @@ namespace KrunkScriptParser.Models.Blocks
     {
         public KSType Type { get; set; } = KSType.Object;
         public Dictionary<string, IKSValue> Properties { get; private set; } = new Dictionary<string, IKSValue>();
+        public int Line { get; set; }
+        public int Column { get; set; }
     }
 }
