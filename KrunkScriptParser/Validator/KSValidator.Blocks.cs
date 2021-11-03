@@ -217,13 +217,18 @@ namespace KrunkScriptParser.Validator
                         if (value.Items.FirstOrDefault() is ExpressionValue expressionValue &&
                             expressionValue.Value is KSVariableName variableName)
                         {
-                            if (!variableName.Type.IsArray || //Not an array
-                                variableName.Type.ArrayDepth < 0||  //Being indexed too far
-                                value.Type.ArrayDepth == variableName.Type.ArrayDepth //Wasn't indexed at all
-                                )
+                            if (!variableName.Variable.Type.IsArray)
+                            {
+                                AddValidationException($"Expected an array for 'remove'. Variable '{variableName.Variable.Name}'");
+                                _iterator.SkipUntil(TokenTypes.Terminator);
+                            }
+                            else if (variableName.Type.ArrayDepth < 0) //Being indexed too far
+                            {
+                                AddValidationException($"Array indexed too far for 'remove'. Variable '{variableName.Variable.Name}'");
+                            }
+                            else if (value.Type.ArrayDepth == variableName.Variable.Type.ArrayDepth) //Wasn't indexed at all
                             {
                                 AddValidationException($"Expected an array property for 'remove'. Variable '{variableName.Variable.Name}'");
-                                _iterator.SkipUntil(TokenTypes.Terminator);
                             }
                         }
                         else
@@ -239,7 +244,7 @@ namespace KrunkScriptParser.Validator
 
                     KSExpression array = ParseExpression();
 
-                    if (!array.Type.IsArray)
+                    if (!array.Type.IsArray && array.Type != KSType.Any)
                     {
                         hasError = true;
                         AddValidationException($"Expected an array. Received '{array.Type}'", array.Line, array.Column);
