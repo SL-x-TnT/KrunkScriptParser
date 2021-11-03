@@ -4,62 +4,96 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Timers;
 
 namespace KrunkScript
 {
     class Program
     {
         private static int _lastLine = 0;
+        private static FileInfo _fileName = null;
+        private static FileSystemWatcher watcher;
+        private static Timer _timer = new Timer(50);
 
         static void Main(string[] args)
         {
-            /*
-            string file = String.Empty;
+            _timer.Elapsed += _timer_Elapsed;
 
-            if(args.Length > 0)
+            if (args.Length > 0)
             {
-                file = args[0];
+                string file = args[0];
 
-                using var watcher = new FileSystemWatcher(@"C:\path\to\folder");
+                _fileName = new FileInfo(file);
+
+                if(!_fileName.Exists)
+                {
+                    Console.WriteLine($"'{file}' does not exist");
+                    Console.ReadLine();
+
+                    return;
+                }
+
+                watcher = new FileSystemWatcher(_fileName.DirectoryName);
+                //Letting it throw any exceptions it wants
+                watcher.NotifyFilter = NotifyFilters.LastWrite;
+
+                watcher.Changed += Watcher_Changed;
+                watcher.Filter = "*.krnk";
+                watcher.EnableRaisingEvents = true;
+
+                Console.WriteLine($"Watching file '{file}' for changes");
             }
             else
             {
-                file = "testFile.krnk"; //My test file
-
-                Console.WriteLine("Parsing test file ...");
-
-
-                KSValidator validator = new KSValidator(File.ReadAllText(file));
-                validator.OnValidationError += Validator_OnValidationError;
-                validator.Validate();
-                validator.OnValidationError -= Validator_OnValidationError;
-
-                Console.WriteLine($"\nValidation complete");
-            }
-            */
-            
-            foreach (string file in Directory.GetFiles("Tests", "*.krnk", SearchOption.AllDirectories))
-            {
-                if (file.EndsWith("globalObjects.krnk"))
-                {
-                    continue;
-                }
-
-                Console.WriteLine($"Parsing ... {file}");
-
-                KSValidator validator = new KSValidator(File.ReadAllText(file));
-                validator.OnValidationError += Validator_OnValidationError;
-
-                Stopwatch sw = Stopwatch.StartNew();
-
-                validator.Validate();
-
-                Console.WriteLine($"\nValidation completed in {sw.ElapsedMilliseconds}ms");
-                Console.WriteLine($"{file}");
+                ValidateFile("testFile.krnk");
             }
             
-
+            
             Console.ReadLine();
+        }
+
+        private static void _timer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            _timer.Stop();
+
+            ValidateFile(_fileName.Name);
+        }
+
+        private static void ValidateFile(string file)
+        {
+            Console.Clear();
+
+            Console.WriteLine($"Parsing '{file}'");
+
+            Stopwatch sw = Stopwatch.StartNew();
+            string text = String.Empty;
+
+            try
+            {
+                text = File.ReadAllText(file);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to read file due to error\n\n{ex}");
+
+                return;
+            }
+
+            KSValidator validator = new KSValidator(text);
+            validator.OnValidationError += Validator_OnValidationError;
+            validator.Validate();
+            validator.OnValidationError -= Validator_OnValidationError;
+
+            Console.WriteLine($"\nValidation complete in {sw.ElapsedMilliseconds}ms");
+        }
+
+        private static void Watcher_Changed(object sender, FileSystemEventArgs e)
+        {
+            if (e.ChangeType == WatcherChangeTypes.Changed && e.Name == _fileName.Name)
+            {
+                _timer.Stop();
+                _timer.Start();
+            }
         }
 
         private static void Validator_OnValidationError(object sender, ValidationException e)

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "KrunkScript": {
+      "commandName": "Project",
+      "commandLineArgs": "\"testFile.krnk\""
+    }
+  }
+}
