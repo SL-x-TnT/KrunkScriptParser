@@ -63,7 +63,7 @@ namespace KrunkScript
         {
             Console.Clear();
 
-            Console.WriteLine($"Parsing '{file}'");
+            Console.WriteLine($"Reading '{file}'");
 
             Stopwatch sw = Stopwatch.StartNew();
             string text = String.Empty;
@@ -81,10 +81,12 @@ namespace KrunkScript
 
             KSValidator validator = new KSValidator(text);
             validator.OnValidationError += Validator_OnValidationError;
+
             validator.Validate();
             validator.OnValidationError -= Validator_OnValidationError;
 
             Console.WriteLine($"\nValidation complete in {sw.ElapsedMilliseconds}ms");
+
         }
 
         private static void Watcher_Changed(object sender, FileSystemEventArgs e)

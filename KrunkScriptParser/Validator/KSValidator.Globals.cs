@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -26,7 +27,8 @@ namespace KrunkScriptParser.Validator
             //Read file + parse file
             try
             {
-                string text = File.ReadAllText("globalObjects.krnk");
+
+                string text = File.ReadAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "globalObjects.krnk"));
 
                 ParseGlobalObjects(text);
             }

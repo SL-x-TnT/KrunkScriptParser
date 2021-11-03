@@ -23,7 +23,7 @@ namespace KrunkScriptParser.Validator
         private Dictionary<string, IKSValue> _krunkerGlobalVariables = new Dictionary<string, IKSValue>();
 
         private TokenIterator _iterator;
-        private Token _token => _iterator.Current;
+        private Token _token => _iterator?.Current;
         private TokenReader _reader;
 
         public event EventHandler<ValidationException> OnValidationError;
@@ -39,10 +39,9 @@ namespace KrunkScriptParser.Validator
         /// <returns>Whether or not the validator encountered an unknown error</returns>
         public bool Validate()
         {
-            InitializeGlobals();
-
             try
             {
+                InitializeGlobals();
                 ParseTokens();
 
                 return true;
