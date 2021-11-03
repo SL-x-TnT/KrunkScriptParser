@@ -13,6 +13,31 @@ namespace KrunkScript
 
         static void Main(string[] args)
         {
+            /*
+            string file = String.Empty;
+
+            if(args.Length > 0)
+            {
+                file = args[0];
+
+                using var watcher = new FileSystemWatcher(@"C:\path\to\folder");
+            }
+            else
+            {
+                file = "testFile.krnk"; //My test file
+
+                Console.WriteLine("Parsing test file ...");
+
+
+                KSValidator validator = new KSValidator(File.ReadAllText(file));
+                validator.OnValidationError += Validator_OnValidationError;
+                validator.Validate();
+                validator.OnValidationError -= Validator_OnValidationError;
+
+                Console.WriteLine($"\nValidation complete");
+            }
+            */
+            
             foreach (string file in Directory.GetFiles("Tests", "*.krnk", SearchOption.AllDirectories))
             {
                 if (file.EndsWith("globalObjects.krnk"))
@@ -32,6 +57,7 @@ namespace KrunkScript
                 Console.WriteLine($"\nValidation completed in {sw.ElapsedMilliseconds}ms");
                 Console.WriteLine($"{file}");
             }
+            
 
             Console.ReadLine();
         }

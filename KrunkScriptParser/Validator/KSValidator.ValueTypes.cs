@@ -255,7 +255,7 @@ namespace KrunkScriptParser.Validator
 
                         break;
                     }
-                    else
+                    else //...
                     {
                         AddValidationException($"Unexpected value '{_token.Value}'");
                         break;

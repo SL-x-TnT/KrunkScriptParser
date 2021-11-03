@@ -176,6 +176,8 @@ namespace KrunkScriptParser.Validator
                 }
 
                 wasDeclared = isDeclared;
+
+                currentToken = _token;
             }
 
             return type;

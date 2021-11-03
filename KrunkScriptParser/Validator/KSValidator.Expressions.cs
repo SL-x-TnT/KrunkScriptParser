@@ -93,7 +93,7 @@ namespace KrunkScriptParser.Validator
                     continue;
                 }
                 
-                if (depth == 0 || _token.Value != ",")
+                if (depth == 0 || (_token.Value != "," && _token.Value != "]"))
                 {
                     _iterator.Next();
                 }

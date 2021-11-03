@@ -12,10 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="client.krnk">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="server.krnk">
+    <None Update="testFile.krnk">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Tests\B91Encoding\b91Encoding_simple.krnk">
