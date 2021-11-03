@@ -46,6 +46,14 @@ namespace KrunkScriptParser.Validator
                                 _token.Type == TokenTypes.Bool ? KSType.Bool : KSType.Number
                 };
 
+                if (_token.Type == TokenTypes.String)
+                {
+                    if (!value.Value.EndsWith("\"") && !value.Value.EndsWith("'"))
+                    {
+                        AddValidationException($"Unterminated string literal");
+                    }
+                }
+
                 return value;
             }
             else if (_token.Type == TokenTypes.Name || _token.Type == TokenTypes.GlobalObject) //Setting using another variable or GAME/UTILS
@@ -145,7 +153,11 @@ namespace KrunkScriptParser.Validator
                 //Property name
                 if (_token.Type != TokenTypes.Name)
                 {
-                    throw new ValidationException($"Expected property name. Found: '{_token.Value}'", _token.Line, _token.Column);
+                    bool willThrow = _iterator.PeekNext().Type != TokenTypes.Name;
+
+                    AddValidationException($"Expected property name. Found: '{_token.Value}'", willThrow: willThrow);
+
+                    _iterator.Next();
                 }
 
                 string name = _token.Value;
