@@ -673,7 +673,7 @@ obj action consoleMenu_parseCommand(str commandStr) {
 	
 	str commandName = parts[0];
 	
-	remove parts[0];
+	remove parts;
 	
 	return {
 		name: commandName,

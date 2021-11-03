@@ -1,5 +1,6 @@
 ﻿using KrunkScriptParser.Models;
 using KrunkScriptParser.Models.Blocks;
+using KrunkScriptParser.Models.Expressions;
 using KrunkScriptParser.Models.Tokens;
 using System;
 using System.Collections.Generic;
@@ -211,13 +212,25 @@ namespace KrunkScriptParser.Validator
                     //Parse expression will handle index validation
                     KSExpression value = ParseExpression();
 
-                    if (value.Type != KSType.Any && !value.Type.IsArray)
+                    if (value.Type != KSType.Any)
                     {
-                        //See if the variable was an array
-
-                        AddValidationException($"Unexpected value '{_token.Value}'");
-
-                        _iterator.SkipUntil(TokenTypes.Terminator);
+                        if (value.Items.FirstOrDefault() is ExpressionValue expressionValue &&
+                            expressionValue.Value is KSVariableName variableName)
+                        {
+                            if (!variableName.Type.IsArray || //Not an array
+                                variableName.Type.ArrayDepth < 0||  //Being indexed too far
+                                value.Type.ArrayDepth == variableName.Type.ArrayDepth //Wasn't indexed at all
+                                )
+                            {
+                                AddValidationException($"Expected an array property for 'remove'. Variable '{variableName.Variable.Name}'");
+                                _iterator.SkipUntil(TokenTypes.Terminator);
+                            }
+                        }
+                        else
+                        {
+                            AddValidationException($"Expected an array type for 'remove'. Received '{value.Type}'");
+                            _iterator.SkipUntil(TokenTypes.Terminator);
+                        }
                     }
                 }
                 else if (method == "addTo")
