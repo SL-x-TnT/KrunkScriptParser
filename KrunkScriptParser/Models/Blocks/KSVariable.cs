@@ -8,10 +8,9 @@ using System.Threading.Tasks;
 
 namespace KrunkScriptParser.Models.Blocks
 {
-    public class KSVariable : IKSValue
+    public class KSVariable : IKSValue, ICloneable
     {
         public KSType Type { get; set; }
-
         public string Name { get;  set; }
         public IKSValue Value { get; set; }
         public bool WasCalled { get; set; }
@@ -20,6 +19,19 @@ namespace KrunkScriptParser.Models.Blocks
 
         public KSVariable()
         {
+        }
+
+        public object Clone()
+        {
+            return new KSVariable
+            {
+                Type = new KSType(Type),
+                Name = Name,
+                Value = Value,
+                WasCalled = WasCalled,
+                Line = Line,
+                Column = Column
+            };
         }
     }
 }

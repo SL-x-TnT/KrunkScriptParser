@@ -217,16 +217,18 @@ namespace KrunkScriptParser.Validator
                         if (value.Items.FirstOrDefault() is ExpressionValue expressionValue &&
                             expressionValue.Value is KSVariableName variableName)
                         {
-                            if (!variableName.Variable.Type.IsArray)
+                            KSType finalExpressionType = variableName.Type;
+
+                            if (!variableName.Variable.Value.Type.IsArray)
                             {
-                                AddValidationException($"Expected an array for 'remove'. Variable '{variableName.Variable.Name}'");
+                                AddValidationException($"Expected an array for 'remove'. Received: '{variableName.Variable.Value.Type}'. Variable '{variableName.Variable.Name}'");
                                 _iterator.SkipUntil(TokenTypes.Terminator);
                             }
-                            else if (variableName.Type.ArrayDepth < 0) //Being indexed too far
+                            else if (finalExpressionType.ArrayDepth < 0) //Being indexed too far
                             {
                                 AddValidationException($"Array indexed too far for 'remove'. Variable '{variableName.Variable.Name}'");
                             }
-                            else if (value.Type.ArrayDepth == variableName.Variable.Type.ArrayDepth) //Wasn't indexed at all
+                            else if (finalExpressionType.ArrayDepth == variableName.Variable.Value.Type.ArrayDepth) //Wasn't indexed at all
                             {
                                 AddValidationException($"Expected an array property for 'remove'. Variable '{variableName.Variable.Name}'");
                             }

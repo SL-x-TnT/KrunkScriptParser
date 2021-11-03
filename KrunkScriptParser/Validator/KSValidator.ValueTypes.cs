@@ -74,7 +74,7 @@ namespace KrunkScriptParser.Validator
 
                     while (TryReadIndexer(out IKSValue _, ref isDeclared))
                     {
-                        variableName.Type.DecreaseDepth();
+                        //variableName.Type.DecreaseDepth();
 
                         if (variableName.Type != KSType.Any && variableName.Type.ArrayDepth < 0 && variableName.Type != KSType.String)
                         {
@@ -324,7 +324,7 @@ namespace KrunkScriptParser.Validator
                 }
                 else if (_token.Value == "(")
                 {
-                    if (TryGetDeclaration(name, out IKSValue ksValue) && ksValue is not KSAction)
+                    if (TryGetDeclaration(initialToken.Value, out IKSValue ksValue) && ksValue is not KSAction)
                     {
                         //Not an action, so back 1 step
                         _iterator.Prev();
@@ -457,6 +457,14 @@ namespace KrunkScriptParser.Validator
                         //_iterator.SkipUntil(new HashSet<string> { ";", ",", "}" });
 
                         return null;
+                    }
+
+                    //PATCH: Indexes again
+                    for (int i = 0; i < depthDecrease; i++)
+                    {
+                        TryGetDeclaration(initialToken.Value, out IKSValue asdfadsf);
+                        //NEED TO CREATE A NEW ACTION OBJECT OR FIND A WAY TO CHANGE REFERERENCE
+                        value.Type.DecreaseDepth();
                     }
 
                     variable = value as KSVariable;

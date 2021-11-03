@@ -305,6 +305,7 @@ namespace KrunkScriptParser.Validator
             else if(variable is KSVariable v)
             {
                 name = v.Name;
+
                 alreadyDeclared = TryGetDeclaration(name, out IKSValue _);
             }
             else if (variable is KSParameter parameter)
@@ -345,10 +346,16 @@ namespace KrunkScriptParser.Validator
                     if(ksValue is KSAction action)
                     {
                         action.WasCalled = true;
+
+                        break;
                     }
                     else if (ksValue is KSVariable variable)
                     {
                         variable.WasCalled = true;
+
+                        ksValue = (IKSValue)variable.Clone();
+
+                        break;
                     }
 
                     return true;
@@ -357,7 +364,7 @@ namespace KrunkScriptParser.Validator
                 currentNode = currentNode.Previous;
             } while (currentNode != null);
 
-            return false;
+            return ksValue != null;
         }
 
         /// <summary>

@@ -83,7 +83,7 @@ namespace KrunkScriptParser.Validator
                     Column = _token.Column
                 };
 
-                value.Type = value.Value.Type;
+                value.Type = new KSType(value.Value.Type);
 
                 expression.Items.Add(value);
 
