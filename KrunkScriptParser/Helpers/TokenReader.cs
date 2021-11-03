@@ -22,7 +22,7 @@ namespace KrunkScriptParser.Helpers
         private static readonly HashSet<string> _typeKeywords = new HashSet<string> { "obj", "num", "str", "bool" };
         private static readonly HashSet<string> _boolean = new HashSet<string> { "true", "false" };
         private static readonly HashSet<char> _puctuation = new HashSet<char> { '(', ')', '[', ']', '{', '}', ',', '.' };
-        private static readonly HashSet<char> _operators = new HashSet<char> { '+', '-', '*', '/', '<', '>', '!', '&', '|', '?', ':' };
+        private static readonly HashSet<char> _operators = new HashSet<char> { '+', '-', '*', '/', '<', '>', '!', '&', '|', '?', ':', '%' };
         private static readonly HashSet<string> _keywords = new HashSet<string> { "if", "while", "else", "for", "break", "continue", "return" };
         private static readonly HashSet<string> _methods = new HashSet<string> { "addTo", "remove", "lengthOf", "notEmpty", "toStr", "toNum" };
         private static readonly HashSet<string> _globalObjects = new HashSet<string> { "GAME", "UTILS", "Math"};
@@ -84,6 +84,10 @@ namespace KrunkScriptParser.Helpers
             {
                 token.Type = TokenTypes.Operator;
                 token.Value = ReadChar().ToString();
+            }
+            else if (c != '\uffff')
+            {
+                throw new Exception($"Unknown value '{c}' found at line {LineNumber} column {ColumnNumber}");
             }
 
             return token;
@@ -185,11 +189,26 @@ namespace KrunkScriptParser.Helpers
             StringBuilder builder = new StringBuilder();
             char prev = (char)0x00;
 
+            bool isHex = false;
+
+            //Check for hex
+            if(PeekChar() == '0')
+            {
+                builder.Append(ReadChar());
+
+                if (PeekChar() == 'x')
+                {
+                    isHex = true;
+
+                    builder.Append(ReadChar());
+                }
+            }
+
             while(true)
             {
                 char c = PeekChar();
 
-                if((c == 'x' && prev == '0') ||  //Hex
+                if(isHex && IsHex(c) ||  //Hex
                     char.IsDigit(c) ||           //Digit
                     c == '.')                    //Double/Float   
                 {
@@ -258,6 +277,12 @@ namespace KrunkScriptParser.Helpers
             }
 
             return builder.ToString();
+        }
+
+        private bool IsHex(char c)
+        {
+            return (c >= 'a' && c <= 'f') ||
+                   (c >= 'A' && c <= 'F');
         }
 
         private TokenTypes GetTokenType(string name)

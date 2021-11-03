@@ -13,12 +13,14 @@ namespace KrunkScript
 
         static void Main(string[] args)
         {
-            foreach (string file in Directory.GetFiles(Environment.CurrentDirectory, "*.krnk"))
+            foreach (string file in Directory.GetFiles("Tests", "*.krnk", SearchOption.AllDirectories))
             {
                 if (file.EndsWith("globalObjects.krnk"))
                 {
                     continue;
                 }
+
+                Console.WriteLine($"Parsing ... {file}");
 
                 KSValidator validator = new KSValidator(File.ReadAllText(file));
                 validator.OnValidationError += Validator_OnValidationError;

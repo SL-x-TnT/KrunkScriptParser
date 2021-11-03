@@ -1,0 +1,137 @@
+# Ability to encode a byte array with base91
+# Can be useful for custom serialization of network packets to reduce size
+
+# Base91 decoding converted from https://github.com/KvanTTT/BaseNcoding
+obj b91_base91 = {
+    alphabet: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%&()*+,./:;<=>?@[]^_`{|}~-"
+};
+
+# Recursion due to loop limits
+num action b91_getValue(str c, num index) {
+	if(index >= lengthOf b91_base91.alphabet) {
+		return -1;
+	}
+	
+	if((str)b91_base91.alphabet[index] == c) {
+		return index;
+	}
+	
+	return b91_getValue(c, index + 1);
+}
+
+num[] action b91_decode(str data) {
+    num dv = -1;
+    num dn = 0;
+    num dbq = 0;
+    num[] result = num[];
+
+    for(num i = 0; i < lengthOf data; i++) {
+        num iv = b91_getValue(data[i], 0);
+
+        if(iv == -1) { continue; }
+
+        if(dv == -1) {
+            dv = iv; 
+        }
+        else {
+            dv += iv * 91;
+            dbq |= (dv << dn);
+
+            if((dv & 8191) > 88) {
+                dn += 13;
+            }
+            else {
+                dn += 14;
+            }
+
+            # do ... while?
+            bool first = true;
+
+            while(first || dn > 7) {
+                addTo result dbq % 256;
+                dbq >>>= 8;
+                dn -= 8;
+                
+                first = false;
+            }
+
+            dv = -1;
+        }
+    }
+
+	if(dv != -1) {
+		addTo result (dbq | dv << dn) & 255;
+	}
+
+	return result;
+}
+
+str action b91_encode(num[] data) {
+    num en = 0;
+    num ebq = 0;
+    str result = "";
+
+	for(num i = 0; i < lengthOf data; i++) {
+		ebq |= (data[i] & 255) << en;
+		en += 8;
+		
+		if(en > 13) {
+			num ev = ebq & 8191;
+			
+			if(ev > 88) {
+				ebq >>>= 13;
+				en -= 13;
+			}
+			else {
+				ev = ebq & 16383;
+				ebq >>>= 14;
+				en -= 14;
+			}
+			
+			num quotient = Math.floor(ev / 91);
+			num remainder = ev % 91;
+		
+			result += (str)b91_base91.alphabet[remainder];
+			result += (str)b91_base91.alphabet[quotient];
+		}
+	}
+
+	if(en > 0) {
+			num quotient = Math.floor(ebq / 91);
+			num remainder = ebq % 91;
+
+			result += (str)b91_base91.alphabet[remainder];
+
+			if(en > 7 || ebq > 90) {
+				result += (str)b91_base91.alphabet[quotient];
+			}
+	}
+
+	return result;
+}
+
+public action start() {
+	# Example
+	num[] byteArray = num[0x54, 0x68, 0x65, 0x20, 0x71, 0x75, 0x69, 0x63, 0x6b, 0x20, 0x62, 0x72, 0x6f, 0x77, 0x6e, 
+					0x20, 0x66, 0x6f, 0x78, 0x20, 0x6a, 0x75, 0x6d, 0x70, 0x73, 0x20, 0x6f, 0x76, 0x65, 0x72, 
+					0x20, 0x74, 0x68, 0x65, 0x20, 0x6c, 0x61, 0x7a, 0x79, 0x20, 0x64, 0x6f, 0x67];
+	
+	str encoded = b91_encode(byteArray);
+	GAME.log(encoded);
+
+	num[] decoded = b91_decode(encoded);
+	GAME.log(decoded);
+
+	bool same = true;
+
+	for(num i = 0; i < lengthOf byteArray; i++) {
+		if(byteArray[i] != decoded[i]) {
+			same = false;
+			
+			break;
+		}
+	}
+
+	GAME.log("Valid:", same);
+}
+

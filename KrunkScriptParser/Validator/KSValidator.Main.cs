@@ -395,8 +395,8 @@ namespace KrunkScriptParser.Validator
 
         private void AddValidationException(string message, int? line = null, int? column = null, Level level = Level.Error, bool willThrow = false)
         {
-            line = line ?? _token.Line;
-            column = column ?? _token.Column;
+            line = line ?? _token?.Line ?? 0;
+            column = column ?? _token?.Column ?? 0;
 
             ValidationException error = new ValidationException(message, line.Value, column.Value, level);
 

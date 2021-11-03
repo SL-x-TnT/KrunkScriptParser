@@ -1,0 +1,223 @@
+# Server Script runs only on Hosted server & not in test mode
+# KrunkScript Copyright (C) Yendis Entertainment Pty Ltd
+# 
+
+# Role flags. Uses 1 bit each to allow different commandMenu_roles to use different commands
+# hasMenu: Allows roles without commands to see the menu
+obj commandMenu_roles = {               
+	host: { name: "Host", color: "#00ff00", value: 1 },
+	mod: { name: "Mod", color: "#0000ff", value: 1 << 2 },
+	user: { name: "User", color: "#dddddd", value: 1 << 3, hasMenu: true },
+	none: { name: "", color: "", value: 1 << 30 } # Shifting 31 bits makes it negative. Can get around this with "(1 << 31) >>> 0" if needed
+};
+
+# Temp fix for now for client side colors
+obj[] commandMenu_roleArray = obj[(obj)commandMenu_roles.host, (obj)commandMenu_roles.mod, (obj)commandMenu_roles.user, (obj)commandMenu_roles.none ]; 
+
+obj commandMenu_config = {
+	playerRoles: obj[			# List of player names + role. Uses account name. When data storage is implemented, these can be pulled from a database
+		{ name: "SLxTnT", role: commandMenu_roles.mod.value }
+	],
+    commands: obj[ 			# List of commands. Has styling for client and added right to left. New commands need to be added to commandMenu_executeCommand and "Commands" section
+		# requiredRole requires a player to have that role to use command. 
+		# 	- Adding multiple roles
+		#		requiredRole: ((num)roles.mod | (num)roles.host | (num)roles.user)
+		# minRole: allows anyone with a higher or equal role (lower number) to use command
+		# executeOnSelf: allows/disallows command to be called on yourself (default: false)
+		# requiredHigherRole: prevents commands to be called on players of the same role or lower (mod can't ban other mods)
+		{ name: "TP2", color: "#000079", minRole: commandMenu_roles.mod.value }, 
+		{ name: "TPMe", color: "#000079", minRole: commandMenu_roles.mod.value },
+		{ isSeparator: true, width: 5 }, # Separates buttons
+		{ name: "Kick", color: "#a200cf", minRole: commandMenu_roles.mod.value, requiredHigherRole: true },
+		{ name: "Ban", color: "#790000", minRole: commandMenu_roles.mod.value, requiredHigherRole: true }
+	]
+};
+
+# List of players, with roles, that are currently in the game. Used to coloring/additional logic on client as "accountName" isn't set
+obj[] commandMenu_playersInGame = obj[];
+# Commands
+
+action commandMenu_banPlayer(obj player) {
+	GAME.ADMIN.ban((str)player.id);
+}
+
+action commandMenu_kickPlayer(obj player) {
+	GAME.ADMIN.kick((str)player.id);
+}
+
+action  commandMenu_tpPlayer(obj from, obj to) {
+	# Position update
+	from.position.x = to.position.x;
+	from.position.y = to.position.y;
+	from.position.z = to.position.z;
+	
+	# Reset velocity
+	from.velocity.x = 0;
+	from.velocity.y = 0;
+	from.velocity.z = 0;
+}
+
+obj action commandMenu_findPlayer(str accountName) {
+	obj[] players = GAME.PLAYERS.list();
+
+	for(num i = 0; i < lengthOf players; i++) {
+		if((str)players[i].accountName == accountName) {
+			return (obj)players[i];
+		}
+	}
+
+	return {};
+}
+
+action commandMenu_sendError(obj player, obj command, str message) {
+	GAME.CHAT.send(player.id, message, "#ff0000");
+}
+
+action commandMenu_executeCommand(obj command, obj data, obj player, obj targetPlayer) {
+	if(!command.executeOnSelf && (str)player.accountName == (str)targetPlayer.accountName)								# Too lazy to check object reference equality
+	{
+		commandMenu_sendError(player, command, "Cannot target yourself with this command");
+		return;
+	}
+
+	# Add new commands here
+	if((str)command.name == "TP2") {
+		commandMenu_tpPlayer(player, targetPlayer);
+	}
+	else if((str)command.name == "TPMe") {
+		commandMenu_tpPlayer(targetPlayer, player);
+    }
+	else if((str)command.name == "Kick") {
+		commandMenu_kickPlayer(targetPlayer);
+	}
+	else if((str)command.name == "Ban") {
+		commandMenu_banPlayer(targetPlayer);
+	}
+}
+
+# End Commands
+
+action commandMenu_broadcastPlayerRoleChange(obj changedRole, bool left) {
+	GAME.NETWORK.broadcast("playerRoles", {
+		left: left,
+		info: changedRole
+	});
+}
+
+num action commandMenu_getRole(str accountName) {
+	for(num i = 0; i < lengthOf  commandMenu_config.playerRoles; i++) {
+		if((str) commandMenu_config.playerRoles[i].name == accountName) {
+			return (num) commandMenu_config.playerRoles[i].role;
+		}
+	}
+	
+	return (num)commandMenu_roles.none.value;
+}
+ 
+bool action commandMenu_canUseCommand(obj command, obj player, obj targetPlayer) {
+	if(notEmpty targetPlayer && (bool)command.requiredHigherRole && (num)player.role >= (num)targetPlayer.role) {
+		return false;
+	}
+	
+	if((toNum command.minRole > 0 && (num)player.role <= (num)command.minRole) || 										# minRole is set AND player role is better or equal to command role min
+			toNum command.requiredRole > 0 && ((num)command.requiredRole & (num)player.role) == (num)player.role) { 	# requiredRole is set AND bit flag for player role is set
+			return true;
+		}
+	
+	return false;
+}
+
+obj action commandMenu_getCommand(obj commandData) {
+	for(num i = 0; i < lengthOf  commandMenu_config.commands; i++) {
+		if((str) commandMenu_config.commands[i].name == (str)commandData.method) {
+			return (obj) commandMenu_config.commands[i];
+		}
+	}
+	
+	return {};
+}
+
+action commandMenu_handlePlayerSpawn(str id) {
+	obj player = GAME.PLAYERS.findByID(id);
+
+	if(!player.role) {
+		player.role = commandMenu_getRole((str)player.accountName);
+
+		obj role = {
+			playerId: player.id,
+			roleId: player.role
+		};
+
+		commandMenu_broadcastPlayerRoleChange(role, false);
+	
+		addTo commandMenu_playersInGame role;
+	
+		# Send valid buttons to client
+		obj[] buttons = obj[];
+
+		for(num i = 0; i < lengthOf  commandMenu_config.commands; i++) {
+			if(!!commandMenu_config.commands[i].isSeparator && lengthOf buttons > 0) {
+				addTo buttons (obj) commandMenu_config.commands[i];
+				continue;
+			}
+
+			if(commandMenu_canUseCommand((obj) commandMenu_config.commands[i], player, {})) {
+				addTo buttons (obj) commandMenu_config.commands[i];
+			}
+		}
+
+		GAME.NETWORK.send("commandMenu", { buttons: buttons, playerRoles: commandMenu_playersInGame, roles: commandMenu_roleArray }, id);
+	}
+}
+
+action commandMenu_handleNetworkMessage(str id, obj data, str playerID) {
+	if(id == "executeCommand") {
+		obj command = commandMenu_getCommand(data);
+
+		# Valid command
+		if(notEmpty command) {
+			obj player = GAME.PLAYERS.findByID(playerID);
+			str playerName = toStr data.username;
+	
+			obj targetPlayer = commandMenu_findPlayer(playerName);
+
+			if(!(notEmpty targetPlayer)) {
+				commandMenu_sendError(player, command, "Target player doesn\'t exist");
+				return;
+			}
+
+			if(commandMenu_canUseCommand(command, player, targetPlayer)) {
+				commandMenu_executeCommand(command, data, player, targetPlayer);
+			}
+			else {
+				commandMenu_sendError(player, command, "Invalid role for this command");
+			}
+		}
+	}
+}
+
+action commandMenu_handleOnPlayerLeave(str playerId) {
+	for(num i = 0; i < lengthOf commandMenu_playersInGame; i++) {
+		if((str)commandMenu_playersInGame[i].playerId == playerId) {
+			commandMenu_broadcastPlayerRoleChange(commandMenu_playersInGame[i], true);
+		
+			remove commandMenu_playersInGame[i];
+			
+			break;
+		}
+	}
+}
+
+# Game Hooks
+
+public action onPlayerSpawn(str id) {
+	commandMenu_handlePlayerSpawn(id);
+}
+
+public action onNetworkMessage(str id, obj data, str playerID) {
+	commandMenu_handleNetworkMessage(id, data, playerID);
+}
+
+public action onPlayerLeave(str playerID) {
+	commandMenu_handleOnPlayerLeave(playerID);
+}
