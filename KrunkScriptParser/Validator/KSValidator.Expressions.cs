@@ -497,7 +497,7 @@ namespace KrunkScriptParser.Validator
                 }
             }
 
-            if(!op.IsTernaryCondition && !op.IsPostfix && !op.ValidTypes.Contains(rightType))
+            if(!op.IsTernaryCondition && !op.IsPostfix && !op.ValidTypes.Contains(rightType) && leftType != rightType)
             {
                 //Special condition
                 if (op.Operator != "=" || leftType != KSType.Any)
