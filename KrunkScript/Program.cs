@@ -18,37 +18,37 @@ namespace KrunkScript
         static void Main(string[] args)
         {
             _timer.Elapsed += _timer_Elapsed;
+            string directory = Directory.GetCurrentDirectory();
 
             if (args.Length > 0)
             {
-                string file = args[0];
-
-                _fileName = new FileInfo(file);
-
-                if(!_fileName.Exists)
-                {
-                    Console.WriteLine($"'{file}' does not exist");
-                    Console.ReadLine();
-
-                    return;
-                }
-
-                watcher = new FileSystemWatcher(_fileName.DirectoryName);
-                //Letting it throw any exceptions it wants
-                watcher.NotifyFilter = NotifyFilters.LastWrite;
-
-                watcher.Changed += Watcher_Changed;
-                watcher.Filter = "*.krnk";
-                watcher.EnableRaisingEvents = true;
-
-                Console.WriteLine($"Watching file '{file}' for changes");
+                directory = args[0];
             }
-            else
+
+            //Was a file
+            if(File.Exists(directory))
             {
-                ValidateFile("testFile.krnk");
+                directory = new FileInfo(directory).DirectoryName;
             }
-            
-            
+            else if(!Directory.Exists(directory))
+            {
+                Console.WriteLine($"'{directory}' does not exist");
+                Console.ReadLine();
+
+                return;
+            }
+
+            watcher = new FileSystemWatcher(directory, "*.krnk");
+            //Letting it throw any exceptions it wants
+            watcher.NotifyFilter = NotifyFilters.LastWrite;
+            watcher.IncludeSubdirectories = true;
+
+            watcher.Changed += Watcher_Changed;
+            watcher.EnableRaisingEvents = true;
+
+            Console.WriteLine($"Watching directory '{directory}' for changes");
+
+
             Console.ReadLine();
         }
 
@@ -56,7 +56,7 @@ namespace KrunkScript
         {
             _timer.Stop();
 
-            ValidateFile(_fileName.Name);
+            ValidateFile(_fileName.FullName);
         }
 
         private static void ValidateFile(string file)
@@ -89,9 +89,12 @@ namespace KrunkScript
 
         private static void Watcher_Changed(object sender, FileSystemEventArgs e)
         {
-            if (e.ChangeType == WatcherChangeTypes.Changed && e.Name == _fileName.Name)
+            if (e.ChangeType == WatcherChangeTypes.Changed)
             {
                 _timer.Stop();
+
+                _fileName = new FileInfo(e.FullPath);
+
                 _timer.Start();
             }
         }
