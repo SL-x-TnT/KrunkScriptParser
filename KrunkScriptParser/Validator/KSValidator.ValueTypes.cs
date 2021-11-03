@@ -306,7 +306,7 @@ namespace KrunkScriptParser.Validator
             bool isAction = false;
             bool isObj = false;
             string name = initialToken.Value;
-
+            int depthDecrease = 0;
             Token lastIndexerToken = null;
 
             //Checks for methods/objects/array indexes
@@ -344,6 +344,11 @@ namespace KrunkScriptParser.Validator
 
                     while (TryReadIndexer(out IKSValue value, ref isDeclared))
                     {
+                        if (!isObj)
+                        {
+                            depthDecrease++;
+                        }
+
                         name += "[]";
                     }
 
@@ -387,6 +392,27 @@ namespace KrunkScriptParser.Validator
                         //_iterator.SkipUntil(new HashSet<string> { ";", ",", "}" });
 
                         return null;
+                    }
+
+                    //PATCH: Checking to verify the type is an obj
+                    if (value is KSVariable variableName)
+                    {
+                        KSType tempType = new KSType(variableName.Type);
+
+                        for (int i = 0; i < depthDecrease; i++)
+                        {
+                            tempType.DecreaseDepth();
+                        }
+
+                        if (tempType != KSType.Object)
+                        {
+                            AddValidationException($"Property member access '.' requires type '{KSType.Object}'. Received '{tempType}' for variable '{variableName.Name}'");
+                        }
+
+                        if(tempType.ArrayDepth < 0)
+                        {
+                            AddValidationException($"Type '{tempType}' can not be indexed");
+                        }
                     }
 
                     variable = new KSVariable
