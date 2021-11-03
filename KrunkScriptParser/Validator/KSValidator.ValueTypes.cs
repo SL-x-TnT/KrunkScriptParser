@@ -312,9 +312,16 @@ namespace KrunkScriptParser.Validator
                 }
                 else if (_token.Value == "(")
                 {
-                    isAction = true;
-                    lastIndexerToken = null;
-
+                    if (TryGetDeclaration(name, out IKSValue ksValue) && ksValue is not KSAction)
+                    {
+                        //Not an action, so back 1 step
+                        _iterator.Prev();
+                    }
+                    else
+                    {
+                        isAction = true;
+                        lastIndexerToken = null;
+                    }
                     break;
                 }
                 else if (_token.Value == "[")
