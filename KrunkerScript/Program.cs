@@ -13,14 +13,24 @@ namespace KrunkScript
 
         static void Main(string[] args)
         {
-            KSValidator validator = new KSValidator(File.ReadAllText("client.krnk"));
-            validator.OnValidationError += Validator_OnValidationError;
+            foreach (string file in Directory.GetFiles(Environment.CurrentDirectory, "*.krnk"))
+            {
+                if (file.EndsWith("globalObjects.krnk"))
+                {
+                    continue;
+                }
 
-            Stopwatch sw = Stopwatch.StartNew();
+                KSValidator validator = new KSValidator(File.ReadAllText(file));
+                validator.OnValidationError += Validator_OnValidationError;
 
-            validator.Validate();
+                Stopwatch sw = Stopwatch.StartNew();
 
-            Console.WriteLine($"\nValidation completed in {sw.ElapsedMilliseconds}ms");
+                validator.Validate();
+
+                Console.WriteLine($"\nValidation completed in {sw.ElapsedMilliseconds}ms");
+                Console.WriteLine($"{file}");
+            }
+
             Console.ReadLine();
         }
 

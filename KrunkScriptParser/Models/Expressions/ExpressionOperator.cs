@@ -21,7 +21,9 @@ namespace KrunkScriptParser.Models.Expressions
             {"<<", new HashSet<KSType>{KSType.Number } },
             {">>", new HashSet<KSType>{ KSType.Number } },
             {">>>", new HashSet<KSType>{ KSType.Number } },
-            {"|", new HashSet<KSType>{KSType.Bool } },
+            {"|", new HashSet<KSType>{KSType.Number } },
+            {"^", new HashSet<KSType>{KSType.Number } },
+            {"&", new HashSet<KSType>{KSType.Number } },
             {"&&", new HashSet<KSType>{KSType.Bool } },
             {"||", new HashSet<KSType>{KSType.Bool } },
             {"=", _allTypes},
@@ -99,19 +101,25 @@ namespace KrunkScriptParser.Models.Expressions
                     ReturnType = KSType.Bool;
                     Priority = MaxPriority - 7;
                     break;
+                case "&":
+                case "^":
+                case "|":
+                    ValidTypes = _assignmentOperators[Operator];
+                    Priority = MaxPriority - 8;
+                    break;
                 case "&&":
                 case "||":
                     ValidTypes = _assignmentOperators[Operator];
                     ReturnType = KSType.Bool;
-                    Priority = MaxPriority - 8;
+                    Priority = MaxPriority - 9;
                     break;
                 case "?": //Ternary (condition ? true : false)
                     ValidTypes.Add(KSType.Bool);
-                    Priority = MaxPriority - 9;
+                    Priority = MaxPriority - 10;
                     break;
                 case ":": //
                     ValidTypes = _allTypes;
-                    Priority = MaxPriority - 9;
+                    Priority = MaxPriority - 10;
                     break;
                 default:
                     //Possibly assignment operators
@@ -128,7 +136,7 @@ namespace KrunkScriptParser.Models.Expressions
                         {
                             IsAssignment = true;
                             ValidTypes = validTypes;
-                            Priority = MaxPriority - 10;
+                            Priority = MaxPriority - 11;
                             break;
                         }
                     }

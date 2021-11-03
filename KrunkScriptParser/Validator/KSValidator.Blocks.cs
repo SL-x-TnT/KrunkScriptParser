@@ -84,6 +84,12 @@ namespace KrunkScriptParser.Validator
 
             _iterator.Next();
 
+            if (blockType != "action" && _token.Type == TokenTypes.Terminator)
+            {
+                AddValidationException($"Unnecessary terminator ';'", level: Level.Warning);
+
+                _iterator.Next();
+            }
             return block;
         }
 
@@ -143,8 +149,22 @@ namespace KrunkScriptParser.Validator
                 {
                     _iterator.Next();
 
-                    if (_blockNode.Value.Keyword != "while" &&
-                        _blockNode.Value.Keyword != "for")
+                    var currentNode = _blockNode;
+
+                    bool found = false;
+
+                    while(currentNode != null)
+                    {
+                        if (currentNode.Value.Keyword == "while" ||
+                            currentNode.Value.Keyword == "for")
+                        {
+                            found = true;
+                        }
+
+                        currentNode = currentNode.Previous;
+                    }
+
+                    if(!found)
                     {
                         AddValidationException($"Invalid call to '{key}' inside '{_blockNode.Value.Keyword}' statement");
                     }
@@ -193,6 +213,8 @@ namespace KrunkScriptParser.Validator
 
                     if (value.Type != KSType.Any && !value.Type.IsArray)
                     {
+                        //See if the variable was an array
+
                         AddValidationException($"Unexpected value '{_token.Value}'");
 
                         _iterator.SkipUntil(TokenTypes.Terminator);
@@ -274,6 +296,8 @@ namespace KrunkScriptParser.Validator
                     if (_token.Value != ")")
                     {
                         AddValidationException($"Missing end of '{key}' statement condition ')'");
+
+                        _iterator.SkipUntil(new HashSet<string> { "{" });
                     }
                     else
                     {

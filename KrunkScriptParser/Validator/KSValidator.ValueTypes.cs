@@ -32,15 +32,12 @@ namespace KrunkScriptParser.Validator
                     return obj;
                 }
             }
-            else if (_token.Type == TokenTypes.Operator)
-            {
-                //Boolean conversion
-                if (_token.Value == "!")
-                {
-                }
-            }
 
-            if (_token.Type == TokenTypes.String || _token.Type == TokenTypes.Number || _token.Type == TokenTypes.Bool)
+            if (_token.Type == TokenTypes.Type || (_token.Type == TokenTypes.String && _iterator.PeekNext().Value == "[")) //Arrays
+            {
+                return ParseArray(_token.Type == TokenTypes.String);
+            }
+            else if (_token.Type == TokenTypes.String || _token.Type == TokenTypes.Number || _token.Type == TokenTypes.Bool)
             {
                 KSPrimitiveValue value = new KSPrimitiveValue
                 {
@@ -65,7 +62,9 @@ namespace KrunkScriptParser.Validator
                 {
                     _iterator.Next();
 
-                    while (TryReadIndexer(out IKSValue _))
+                    bool isDeclared = false;
+
+                    while (TryReadIndexer(out IKSValue _, ref isDeclared))
                     {
                         variableName.Type.DecreaseDepth();
 
@@ -74,15 +73,15 @@ namespace KrunkScriptParser.Validator
                             AddValidationException($"Type '{variableName.Type}' can not be indexed");
                         }
 
-                        _iterator.Next();
+                        //Has another
+                        if(_iterator.PeekNext().Value == "[")
+                        {
+                            _iterator.Next();
+                        }
                     }
                 }
 
                 return variableName;
-            }
-            else if (_token.Type == TokenTypes.Type) //Arrays
-            {
-                return ParseArray();
             }
             else
             {
@@ -93,7 +92,7 @@ namespace KrunkScriptParser.Validator
             }
         }
 
-        private bool TryReadIndexer(out IKSValue value)
+        private bool TryReadIndexer(out IKSValue value, ref bool isDeclared)
         {
             value = null;
 
@@ -104,16 +103,32 @@ namespace KrunkScriptParser.Validator
 
             _iterator.Next();
 
+            if(_token.Value == "]")
+            {
+                _iterator.Next();
+
+                return true;
+            }
+
+            bool wasDeclared = isDeclared;
+
+            isDeclared = true;
+
             value = ParseExpression(depth: 1);
 
-            if (_token.Value != "]")
+            if (_token.Value != "]" && !wasDeclared &&_token.Value != ",")
             {
                 AddValidationException($"Missing end of indexer ']'");
             }
 
-            if(value.Type != KSType.Number)
+            if(value.Type != KSType.Number && wasDeclared)
             {
                 AddValidationException($"Array indexer expects type '{KSType.Number}'. Received '{value.Type}'");
+            }
+
+            if(_iterator.PeekNext().Value == "[")
+            {
+                _iterator.Next();
             }
 
             return true;
@@ -190,107 +205,81 @@ namespace KrunkScriptParser.Validator
             return ksObject;
         }
 
-        private KSArray ParseArray(int depth = 0)
+        private KSArray ParseArray(bool isString)
         {
             KSArray ksArray = new KSArray();
 
-            ksArray.Type = ParseType(true);
+            if(isString)
+            {
+                ksArray.Type = KSType.String;
+                _iterator.Next();
+            }
+            else
+            {
+                ksArray.Type = ParseType();
+            }
+
+            KSType valueType = new KSType(ksArray.Type);
+            valueType.DecreaseDepth();
 
             //Empty array
-            if (_token.Type == TokenTypes.Punctuation && _token.Value == "]")
+            if (_iterator.PeekPrev().Value == "]")
             {
                 return ksArray;
             }
 
-            while (_token.Type == TokenTypes.Punctuation)
+            //String aren't arrays, but we're using this method for the indexing below
+            if (!isString)
             {
-                Token nextToken = _iterator.PeekNext();
-
-                if (nextToken.Type == TokenTypes.Punctuation)
+                //Read expression for all values
+                while (true)
                 {
-                    //Skip nested arrays
-                    if (nextToken.Value == "[")
+                    //Depth of 1 so objects don't need ;
+                    KSExpression arrayValue = ParseExpression(depth: 1);
+
+                    if (arrayValue.Type != valueType)
                     {
-                        _iterator.Next();
-
-                        AddValidationException($"Nested arrays currently not validated", level: Level.Info);
-
-                        int nestedDepth = 1;
-
-                        //Attempt to save
-                        while (nestedDepth > 0)
-                        {
-                            _iterator.Next();
-
-                            if (_token.Type == TokenTypes.Punctuation)
-                            {
-                                if (_token.Value == "[")
-                                {
-                                    ++nestedDepth;
-                                }
-                                else if (_token.Value == "]")
-                                {
-                                    --nestedDepth;
-                                }
-                            }
-                        }
-
-                        return ksArray;
+                        AddValidationException($"Expected type '{arrayValue.Type}'. Received '{valueType}'", level: Level.Error);
                     }
 
-                    if (_token.Value == "]") //Allow it to continue
-                    {
-                        break;
-                    }
-                    else
-                    {
-                        throw new ValidationException($"Expected ']'. Found '{_token.Value}'", _token.Line, _token.ColumnEnd);
-                    }
-                }
-            }
+                    ksArray.Values.Add(arrayValue);
 
-            //End of array declaration
-            while (_token.Type != TokenTypes.Punctuation || _token.Value != "]")
-            {
-                IKSValue value = ParseExpression(depth: depth + 1);
-
-                if (ksArray.Type.Name != value.Type.FullType)
-                {
-                    AddValidationException($"Expected type '{ksArray.Type.Name}'. Received '{value.Type.FullType}'", level: Level.Error);
-                }
-
-                ksArray.Values.Add(value);
-
-                if (_token.Type == TokenTypes.Punctuation)
-                {
+                    //More values
                     if (_token.Value == ",")
                     {
                         _iterator.Next();
                     }
                     else if (_token.Value == "]")
                     {
-                        //PATCH: Has some more indexers
-                        while (_iterator.PeekNext().Value == "[")
-                        {
-                            _iterator.Next();
+                        _iterator.Next();
 
-                            if (TryReadIndexer(out IKSValue _))
-                            {
-                                ksArray.Type.DecreaseDepth();
-
-                                if(ksArray.Type.ArrayDepth < 0 && ksArray.Type != KSType.String) //Strings indexed returns strings which can be indexed
-                                {
-                                    AddValidationException($"Type '{ksArray.Type}' can not be indexed");
-                                }
-                            }
-                        }
-
-                        return ksArray;
+                        break;
                     }
                     else
                     {
-                        throw new ValidationException($"Expected ']' or ','. Found '{_token.Value}'", _token.Line, _token.ColumnEnd);
+                        AddValidationException($"Unexpected value '{_token.Value}'");
+                        break;
                     }
+                }
+            }
+
+            bool isDeclared = true;
+
+            //For some reason an array was declared then indexed
+            while(TryReadIndexer(out IKSValue arrayVal, ref isDeclared))
+            {
+                if(_token.Value == ",")
+                {
+                    AddValidationException($"Array index can not contain an array declaration");
+
+                    _iterator.SkipUntil(new HashSet<string> { "]" });
+                }
+
+                ksArray.Type.DecreaseDepth();
+
+                if (ksArray.Type.ArrayDepth < 0 && ksArray.Type != KSType.String) //Strings indexed returns strings which can be indexed
+                {
+                    AddValidationException($"Type '{ksArray.Type}' can not be indexed");
                 }
             }
 
@@ -328,11 +317,16 @@ namespace KrunkScriptParser.Validator
 
                     break;
                 }
-                else if (_token.Value == "[" && isObj)
+                else if (_token.Value == "[")
                 {
                     lastIndexerToken = _token;
 
-                    TryReadIndexer(out IKSValue value);
+                    bool isDeclared = false;
+
+                    while (TryReadIndexer(out IKSValue value, ref isDeclared))
+                    {
+                        name += "[]";
+                    }
 
                     continue;
                 }

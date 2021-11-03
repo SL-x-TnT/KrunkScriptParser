@@ -1,7 +1,8 @@
 # Client Script runs only on the client
 # KrunkScript Copyright (C) Yendis Entertainment Pty Ltd
 # 
-
+#num[] b =num[0];
+#num[][][] aaaa = num[][][];
 #num[] arr = num[1,2,3,4];
 #bool test = GAME.PLAYERS.findByID("1") == "1";
 #obj test = GAME.PLAYERS.list()[0];
@@ -15,8 +16,11 @@
 #num[] aaa = num[1, 2, 3];
 
  action test() {
+ #num b =num[0][0];
 
-	str a = "a" + true ? "a" : "b";
+ num[][][] aaaa = num[][][];
+ num b = aaaa[0][0][0];
+ #num[][] nested = num[][num[1], num[1, 2]];
 }
 
 obj consoleMenu_config = {

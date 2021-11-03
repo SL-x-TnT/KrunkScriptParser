@@ -9,7 +9,7 @@ namespace KrunkScriptParser.Models.Expressions
 {
     public abstract class ExpressionItem
     {
-        public const int MaxPriority = 10;
+        public const int MaxPriority = 11;
         public abstract bool HasType { get; }
         public KSType Type { get; set; }
         public virtual int Priority { get; set; }

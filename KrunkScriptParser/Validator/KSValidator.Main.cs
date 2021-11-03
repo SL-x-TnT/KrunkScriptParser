@@ -137,11 +137,11 @@ namespace KrunkScriptParser.Validator
         /// <summary>
         /// Parses a type token
         /// </summary>
-        private KSType ParseType(bool isArrayDeclaration = false)
+        private KSType ParseType()
         {
             if(_token.Type != TokenTypes.Type)
             {
-                throw new ValidationException($"Expected a type. Received '{_token.Value}'", _token.Line, _token.Column);
+                AddValidationException($"Expected a type. Received '{_token.Value}'", willThrow: true);
             }
 
             KSType type = new KSType
@@ -151,24 +151,31 @@ namespace KrunkScriptParser.Validator
 
             _iterator.Next();
 
-            //Checking for an array
-            while (_token.Type == TokenTypes.Punctuation && _token.Value == "[")
+            bool isDeclared = false;
+            bool wasDeclared = false;
+
+            Token currentToken = _token;
+
+            while (TryReadIndexer(out IKSValue v, ref isDeclared))
             {
                 type.IncreaseDepth();
 
-                _iterator.Next();
-
-                if(isArrayDeclaration)
+                //Array values
+                if(wasDeclared && _token.Value != "]")
                 {
                     return type;
                 }
 
-                if (_token.Type != TokenTypes.Punctuation || _token.Value != "]")
+                //Array values got declared, so return to prior expression to read values
+                if(isDeclared)
                 {
-                    throw new ValidationException($"Expected ']' found '{_token.Value}'", _token.Line, _token.Column);
+                    _iterator.ReturnTo(currentToken);
+                    _iterator.Next();
+
+                    return type;
                 }
 
-                _iterator.Next();
+                wasDeclared = isDeclared;
             }
 
             return type;
@@ -183,33 +190,34 @@ namespace KrunkScriptParser.Validator
             {
                 Type = ParseType(),
                 Line = _token.Line,
-                Column = _token.Column
+                Column = _token.Column,
+                Name = ""
             };
 
             //Expecting a name
-            if (_token.Type == TokenTypes.Name)
+            if (_token.Type != TokenTypes.Name)
+            {
+                AddValidationException($"Expected variable name. Found: {_token.Value}");
+            }
+            else
             {
                 variable.Name = _token.Value;
 
                 _iterator.Next();
-            }
-            else
-            {
-                throw new ValidationException($"Expected variable name. Found: {_token.Value}", _token.Line, _token.Column);
             }
 
             AddDeclaration(variable);
 
             //TODO: Nested array support
             if (variable.Type.ArrayDepth > 1)
-            {
+            {/*
                 AddValidationException($"Nested arrays currently not validated", level: Level.Info);
 
                 _iterator.SkipUntil(TokenTypes.Terminator);
 
                 _iterator.Next();
 
-                return variable;
+                return variable;*/
             }
 
             //Expecting =
@@ -416,7 +424,7 @@ namespace KrunkScriptParser.Validator
                     //Guessing 10k won't ever be hit under normal conditions
                     if(++_counter >= 10000)
                     {
-                        throw new ValidationException($"Infinite loop detected", _token.Line, _token.Column);
+                        throw new ValidationException($"Parser entered an infinite loop. Stopping validation...", _token.Line, _token.Column);
                     }
 
                     return _token;

@@ -92,8 +92,11 @@ namespace KrunkScriptParser.Validator
                 {
                     continue;
                 }
-
-                _iterator.Next();
+                
+                if (depth == 0 || _token.Value != ",")
+                {
+                    _iterator.Next();
+                }
 
                 if(TryReadOperator(out op))
                 {

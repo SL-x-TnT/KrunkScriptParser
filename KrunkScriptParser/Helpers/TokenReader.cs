@@ -253,6 +253,8 @@ namespace KrunkScriptParser.Helpers
                 {
                     break;
                 }
+
+                prev = c;
             }
 
             return builder.ToString();
