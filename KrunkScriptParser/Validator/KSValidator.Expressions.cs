@@ -124,13 +124,26 @@ namespace KrunkScriptParser.Validator
                                 }
                                 else if(item is ForceConversion conversion && conversion.ValidLeftHand)
                                 {
+                                    // = operator can't have casts to the left
+                                    if(op.Operator == "=")
+                                    {
+                                        if (!showedError)
+                                        {
+                                            AddValidationException($"Invalid left-hand side in assignment", item.Line, item.Column);
+                                            showedError = true;
+                                        }
+                                    }
+
                                     continue;
                                 }
 
-                                showedError = true;
-                                AddValidationException($"Invalid left-hand side in assignment", item.Line, item.Column);
+                                if (!showedError)
+                                {
+                                    AddValidationException($"Invalid left-hand side in assignment", item.Line, item.Column);
+                                    showedError = true;
+                                }
 
-                                break;
+                                    break;
                             }
 
                             if(!hasVariable && !showedError)
