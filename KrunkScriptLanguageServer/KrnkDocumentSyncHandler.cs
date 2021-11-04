@@ -49,26 +49,30 @@ namespace KrunkScriptLanguageServer
 
             foreach (ValidationException error in validator.ValidationExceptions)
             {
+                Position startPosition = new Position(error.TokenStart?.Line - 1 ?? error.LineNumber - 1, error.TokenStart?.Column - 1 ?? 0);
+                Position endPosition = new Position(error.LineNumber - 1, error.ColumnNumber);
+
+                if (startPosition.Line < 0) { startPosition.Line = 0; };
+                if (startPosition.Character < 0) { startPosition.Character = 0; };
+
+
+                if (endPosition.Line < 0) { endPosition.Line = 0; };
+                if (endPosition.Character < 0) { endPosition.Character = 0; };
+
+
                 diagnostics.Add(new Diagnostic
                 {
                     Severity = (DiagnosticSeverity)error.Level,
                     Message = error.Message,
-                    Range = new OmniSharp.Extensions.LanguageServer.Protocol.Models.Range(new Position(error.LineNumber - 1, error.ColumnNumber), new Position(error.LineNumber - 1, error.ColumnNumber + error.Length))
+                    Range = new OmniSharp.Extensions.LanguageServer.Protocol.Models.Range(startPosition, endPosition)
                 });
             }
 
-            if (diagnostics.Count > 0)
+            _router.Document.PublishDiagnostics(new PublishDiagnosticsParams()
             {
-                _router.Document.PublishDiagnostics(new PublishDiagnosticsParams()
-                {
-                    Diagnostics = new Container<Diagnostic>(diagnostics.ToArray()),
-                    Uri = uri
-                });
-            }
-            else
-            {
-                _router.Window.LogInfo($"No errors found");
-            }
+                Diagnostics = new Container<Diagnostic>(diagnostics.ToArray()),
+                Uri = uri
+            });
         }
 
         public TextDocumentChangeRegistrationOptions GetRegistrationOptions()

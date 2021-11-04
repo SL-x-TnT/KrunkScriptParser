@@ -24,6 +24,8 @@ namespace KrunkScriptParser.Validator
 
         private TokenIterator _iterator;
         private Token _token => _iterator?.Current;
+        private Token _tokenLineStart; //Keeps track of the token line start position
+
         private TokenReader _reader;
 
         public event EventHandler<ValidationException> OnValidationError;
@@ -46,7 +48,14 @@ namespace KrunkScriptParser.Validator
 
                 return true;
             }
-            catch(Exception ex)
+
+            catch (ValidationException ex)
+            {
+                AddValidationException(ex);
+
+                return false;
+            }
+            catch (Exception ex)
             {
                 AddValidationException($"Parser failed due to an exception. Message: {ex.Message}");
 
@@ -75,6 +84,8 @@ namespace KrunkScriptParser.Validator
                 try
                 {
                     currentToken = _token;
+                    _tokenLineStart = _token;
+
                     bool hasType = false;
 
                     if(_token.Type == TokenTypes.Type)
@@ -406,7 +417,18 @@ namespace KrunkScriptParser.Validator
             line = line ?? _token?.Line ?? 0;
             column = column ?? _token?.Column ?? 0;
 
-            ValidationException error = new ValidationException(message, line.Value, column.Value, _token?.Value?.Length ?? 1, level);
+            TokenLocation loc = null;
+
+            if(_tokenLineStart != null)
+            {
+                loc = new TokenLocation
+                {
+                    Line = _tokenLineStart.Line,
+                    Column = _tokenLineStart.Column
+                };
+            }
+
+            ValidationException error = new ValidationException(message, line.Value, column.Value, loc, level);
 
             if (willThrow)
             {
@@ -432,7 +454,7 @@ namespace KrunkScriptParser.Validator
                     //Guessing 10k won't ever be hit under normal conditions
                     if(++_counter >= 10000)
                     {
-                        throw new ValidationException($"Parser entered an infinite loop. Stopping validation...", _token.Line, _token.Column, _token?.Value?.Length ?? 1);
+                        throw new ValidationException($"Parser entered an infinite loop. Stopping validation...", _token.Line, _token.Column, null);
                     }
 
                     return _token;
@@ -496,7 +518,7 @@ namespace KrunkScriptParser.Validator
                 {
                     if(_token == null)
                     {
-                        throw new ValidationException("Unexpected end of file", _token.Line, _token.Column, _token?.Value?.Length ?? 1);
+                        throw new ValidationException("Unexpected end of file", _token.Line, _token.Column, null);
                     }
                 }
 

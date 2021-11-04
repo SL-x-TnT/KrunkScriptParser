@@ -289,7 +289,6 @@ namespace KrunkScriptParser.Validator
                                 currentNode = currentNode.Next;
                             }
 
-
                             //Remove the nodes used
                             linkedList.Remove(leftItem);
                             linkedList.Remove(rightItem);
@@ -398,7 +397,7 @@ namespace KrunkScriptParser.Validator
 
                 return true;
             }
-            else if(_token.Value == "~")
+            else if (_token.Value == "~") //Treating as a cast
             {
                 conversion = new ForceConversion(KSType.Number, false);
                 conversion.Line = _token.Line;
@@ -504,7 +503,7 @@ namespace KrunkScriptParser.Validator
                 return;
             }
 
-            if(!op.ValidTypes.Contains(rightType))
+            if(!op.IsPostfix && !op.IsTernaryCondition && !op.ValidTypes.Contains(rightType))
             {
                 //Special condition
                 if (op.Operator != "=" || leftType != KSType.Any)
@@ -524,7 +523,7 @@ namespace KrunkScriptParser.Validator
             string op = String.Empty;
 
             // ! may be used to convert a type to a bool, but it shouldn't be at the end of an operator
-            while ((_token.Type == TokenTypes.Operator || _token.Type == TokenTypes.Assign) && (String.IsNullOrEmpty(op) || _token.Value != "!"))
+            while ((_token.Type == TokenTypes.Operator || _token.Type == TokenTypes.Assign) && (String.IsNullOrEmpty(op) || (_token.Value != "!" && _token.Value != "~")))
             {
                 //Possibly negative value and not --. Ignoring + unary operator
                 if (!String.IsNullOrEmpty(op) && _token.Value == "-" && op.Last() != '-')

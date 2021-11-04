@@ -1,4 +1,5 @@
-﻿using KrunkScriptParser.Models.Tokens;
+﻿using KrunkScriptParser.Models;
+using KrunkScriptParser.Models.Tokens;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -22,7 +23,7 @@ namespace KrunkScriptParser.Helpers
         private static readonly HashSet<string> _typeKeywords = new HashSet<string> { "obj", "num", "str", "bool" };
         private static readonly HashSet<string> _boolean = new HashSet<string> { "true", "false" };
         private static readonly HashSet<char> _puctuation = new HashSet<char> { '(', ')', '[', ']', '{', '}', ',', '.' };
-        private static readonly HashSet<char> _operators = new HashSet<char> { '+', '-', '*', '/', '<', '>', '!', '&', '|', '?', ':', '%' };
+        private static readonly HashSet<char> _operators = new HashSet<char> { '+', '-', '*', '/', '<', '>', '!', '&', '|', '?', ':', '%', '~' };
         private static readonly HashSet<string> _keywords = new HashSet<string> { "if", "while", "else", "for", "break", "continue", "return" };
         private static readonly HashSet<string> _methods = new HashSet<string> { "addTo", "remove", "lengthOf", "notEmpty", "toStr", "toNum" };
         private static readonly HashSet<string> _globalObjects = new HashSet<string> { "GAME", "UTILS", "Math"};
@@ -87,7 +88,7 @@ namespace KrunkScriptParser.Helpers
             }
             else if (c != '\uffff')
             {
-                throw new Exception($"Unknown value '{c}' found at line {LineNumber} column {ColumnNumber}");
+                throw new ValidationException($"Unknown value '{c}' found at line {LineNumber} column {ColumnNumber}", _lineNumber, _columnNumber, null);
             }
 
             return token;
@@ -165,7 +166,8 @@ namespace KrunkScriptParser.Helpers
 
             if (c == '\t')
             {
-                _columnNumber += 4;
+                //_columnNumber += 4;
+                ++_columnNumber;
             }
             else
             {

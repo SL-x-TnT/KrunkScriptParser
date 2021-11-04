@@ -96,6 +96,8 @@ namespace KrunkScriptParser.Validator
 
         private IKSValue ParseLine()
         {
+            _tokenLineStart = _token;
+
             string key = String.Empty;
 
             //Finds the key and places iterator on the last keyword
