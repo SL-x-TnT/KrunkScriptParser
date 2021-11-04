@@ -497,8 +497,14 @@ namespace KrunkScriptParser.Validator
                     showedError = true;
                 }
             }
+            
+            //PATCH: Exit early on assignments with valid types
+            if(op.Operator == "=" && leftType == rightType)
+            {
+                return;
+            }
 
-            if(!op.IsTernaryCondition && !op.IsPostfix && !op.ValidTypes.Contains(rightType) && leftType != rightType)
+            if(!op.ValidTypes.Contains(rightType))
             {
                 //Special condition
                 if (op.Operator != "=" || leftType != KSType.Any)
