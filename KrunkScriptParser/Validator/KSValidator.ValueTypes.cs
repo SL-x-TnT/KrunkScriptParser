@@ -87,6 +87,12 @@ namespace KrunkScriptParser.Validator
                             _iterator.Next();
                         }
                     }
+
+                    //Patch to handle arrays in objects
+                    if (_iterator.PeekNext().Value == "," || _iterator.PeekNext().Value == "}")
+                    {
+                        _iterator.Next();
+                    }
                 }
 
                 return variableName;
@@ -193,7 +199,7 @@ namespace KrunkScriptParser.Validator
                     {
                         Token next = _iterator.PeekNext();
 
-                        if (next.Value == "}" || next.Type == TokenTypes.Name)
+                        if (next.Value == "}" || next.Type == TokenTypes.Name || next.Type == TokenTypes.Type)
                         {
                             _iterator.Next();
                         }
