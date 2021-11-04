@@ -73,8 +73,7 @@ namespace KrunkScriptParser.Validator
             _declarations.AddFirst(_declarationNode);
 
             //Blocks to determine whether continue/break statements are valid
-            _blockNode = new LinkedListNode<KSBlock>(new KSBlock { Keyword = "global" });
-            _blocks.AddFirst(_blockNode);
+            AddNewScopeLevel(new KSBlock { Keyword = "global" });
 
             while (_token != null)
             {
@@ -132,6 +131,9 @@ namespace KrunkScriptParser.Validator
                     break;
                 }
             }
+
+            //Final global scope
+            RemoveScopeLevel();
         }
 
         /// <summary>
@@ -188,6 +190,8 @@ namespace KrunkScriptParser.Validator
 
                 currentToken = _token;
             }
+
+            type.EndTokenLocation = new TokenLocation(_token.Prev);
 
             return type;
         }

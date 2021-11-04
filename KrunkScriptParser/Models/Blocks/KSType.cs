@@ -7,12 +7,13 @@ using System.Threading.Tasks;
 
 namespace KrunkScriptParser.Models.Blocks
 {
-    public class KSType
+    public class KSType : IKSEndToken
     {
         public string Name { get; set; }
         public bool IsArray => ArrayDepth > 0;
         public int ArrayDepth { get; private set; }
         public TokenLocation TokenLocation { get; set; }
+        public TokenLocation EndTokenLocation { get; set; }
 
         public string FullType
         {

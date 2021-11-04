@@ -37,6 +37,7 @@ namespace KrunkScriptLanguageServer
             _bufferManager = bufferManager;
         }
 
+        //Update to incremental changes at some point
         public TextDocumentSyncKind Change { get; } = TextDocumentSyncKind.Full;
 
         private void ValidateText(Uri uri, string text)
@@ -80,7 +81,7 @@ namespace KrunkScriptLanguageServer
             return new TextDocumentChangeRegistrationOptions()
             {
                 DocumentSelector = _documentSelector,
-                SyncKind = Change
+                SyncKind = TextDocumentSyncKind.None
             };
         }
 
@@ -91,19 +92,19 @@ namespace KrunkScriptLanguageServer
 
         public Task<Unit> Handle(DidChangeTextDocumentParams request, CancellationToken cancellationToken)
         {
-            var documentPath = request.TextDocument.Uri.ToString();
-            var text = request.ContentChanges.FirstOrDefault()?.Text;
-
-            _bufferManager.UpdateBuffer(documentPath, new StringBuilder(text));
+            /*
+            string text = request.ContentChanges.FirstOrDefault()?.Text;
 
             ValidateText(request.TextDocument.Uri, text);
+            */
 
             return Unit.Task;
         }
 
         public Task<Unit> Handle(DidOpenTextDocumentParams request, CancellationToken cancellationToken)
         {
-            _bufferManager.UpdateBuffer(request.TextDocument.Uri.ToString(), new StringBuilder(request.TextDocument.Text));
+            ValidateText(request.TextDocument.Uri, request.TextDocument.Text);
+
             return Unit.Task;
         }
 
@@ -114,6 +115,8 @@ namespace KrunkScriptLanguageServer
 
         public Task<Unit> Handle(DidSaveTextDocumentParams request, CancellationToken cancellationToken)
         {
+            ValidateText(request.TextDocument.Uri, request.Text);
+
             return Unit.Task;
         }
 

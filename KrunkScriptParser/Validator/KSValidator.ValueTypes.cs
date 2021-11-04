@@ -11,7 +11,6 @@ namespace KrunkScriptParser.Validator
 {
     public partial class KSValidator
     {
-
         /// <summary>
         /// Parses the declared value. Could be an object, num, str, etc
         /// </summary>
@@ -65,7 +64,7 @@ namespace KrunkScriptParser.Validator
                 {
                     Type = new KSType(variable?.Type),
                     Variable = variable as KSVariable,
-                    TokenLocation = variable.TokenLocation
+                    TokenLocation = variable?.TokenLocation
                 };
 
                 if (_iterator.PeekNext().Value == "[")
@@ -90,7 +89,8 @@ namespace KrunkScriptParser.Validator
                         }
                     }
 
-                    //Patch to handle arrays in objects
+                    //Patch to handle arrays in
+                    //
                     if (_iterator.PeekNext().Value == "," || _iterator.PeekNext().Value == "}")
                     {
                         //_iterator.Next();
@@ -160,9 +160,9 @@ namespace KrunkScriptParser.Validator
             {
                 if(_token.Type == TokenTypes.Type)
                 {
-                    AddValidationException($"Objects do not support declaring types for property members", _token);
+                    KSType type = ParseType();
 
-                    ParseType();
+                    AddValidationException($"Objects do not support declaring types for property members", type.TokenLocation, type.EndTokenLocation);
                 }
 
                 //Property name

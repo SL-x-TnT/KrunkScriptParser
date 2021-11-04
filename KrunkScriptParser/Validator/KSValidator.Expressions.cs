@@ -301,6 +301,9 @@ namespace KrunkScriptParser.Validator
                     else if (currentNode.Value.Priority > currentPriority)
                     {
                         //Something went wrong
+                        AddValidationException($"Failed to determine expression type", items.First().TokenLocation, items.Last().TokenLocation);
+
+                        return KSType.Unknown;
                     }
 
                     currentNode = currentNode.Next;
