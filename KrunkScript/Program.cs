@@ -108,10 +108,10 @@ namespace KrunkScript
             Console.ForegroundColor = e.Level == Level.Error ? ConsoleColor.Red : 
                 e.Level == Level.Warning ? ConsoleColor.Yellow : ConsoleColor.Cyan;
             
-            if (_lastLine == e.LineNumber)
+            if (_lastLine == e.LineStart)
             {
                 Console.Write("\t");
-                Console.WriteLine($"({e.LineNumber}:{e.ColumnNumber}) {e.Message}");
+                Console.WriteLine($"({e.LineStart}:{e.ColumnStart}) {e.Message}");
             }
             else
             {
@@ -121,7 +121,7 @@ namespace KrunkScript
 
             Console.ForegroundColor = prevColor;
 
-            _lastLine = e.LineNumber;
+            _lastLine = e.LineStart;
         }
     }
 }

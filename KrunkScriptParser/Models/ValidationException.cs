@@ -1,4 +1,5 @@
 ﻿using KrunkScriptParser.Helpers;
+using KrunkScriptParser.Models.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,28 +18,28 @@ namespace KrunkScriptParser.Models
 
     public class ValidationException : Exception
     {
-        public int LineNumber { get; private set; }
-        public int ColumnNumber { get; private set; }
-        public TokenLocation TokenStart { get; private set; }
+        public int LineStart { get; private set; }
+        public int LineEnd { get; private set; }
+
+        public int ColumnStart { get; private set; }
+        public int ColumnEnd { get; private set; }
+
         public Level Level { get; private set; }
 
-        public ValidationException(string text, int lineNumber, int columnNumber, TokenLocation tokenStart, Level level = Level.Error) : base(text)
+        public ValidationException(string text, TokenLocation tokenStart, TokenLocation tokenEnd, Level level = Level.Error) : base(text)
         {
-            LineNumber = lineNumber;
-            ColumnNumber = columnNumber;
+            LineStart = tokenStart.Line;
+            LineEnd = tokenEnd.Line;
+
+            ColumnStart = tokenStart.Column;
+            ColumnEnd = tokenEnd.ColumnEnd;
+
             Level = level;
-            TokenStart = tokenStart;
         }
 
         public override string ToString()
         {
-            return $"[{Level}] ({LineNumber}:{ColumnNumber}) {Message}";
+            return $"[{Level}] ({LineStart}:{ColumnStart}) {Message}";
         }
-    }
-
-    public class TokenLocation
-    {
-        public int Line { get; set; }
-        public int Column { get; set; }
     }
 }

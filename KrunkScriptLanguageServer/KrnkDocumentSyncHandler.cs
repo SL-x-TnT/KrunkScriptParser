@@ -49,8 +49,8 @@ namespace KrunkScriptLanguageServer
 
             foreach (ValidationException error in validator.ValidationExceptions)
             {
-                Position startPosition = new Position(error.TokenStart?.Line - 1 ?? error.LineNumber - 1, error.TokenStart?.Column - 1 ?? 0);
-                Position endPosition = new Position(error.LineNumber - 1, error.ColumnNumber);
+                Position startPosition = new Position(error.LineStart - 1, error.ColumnStart - 1);
+                Position endPosition = new Position(error.LineEnd - 1, error.ColumnEnd - 1);
 
                 if (startPosition.Line < 0) { startPosition.Line = 0; };
                 if (startPosition.Character < 0) { startPosition.Character = 0; };

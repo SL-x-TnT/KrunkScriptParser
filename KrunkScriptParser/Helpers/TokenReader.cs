@@ -88,7 +88,7 @@ namespace KrunkScriptParser.Helpers
             }
             else if (c != '\uffff')
             {
-                throw new ValidationException($"Unknown value '{c}' found at line {LineNumber} column {ColumnNumber}", _lineNumber, _columnNumber, null);
+                throw new ValidationException($"Unknown value '{c}' found at line {LineNumber} column {ColumnNumber}", new TokenLocation(token), new TokenLocation(token));
             }
 
             return token;

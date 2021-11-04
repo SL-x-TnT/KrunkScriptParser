@@ -1,4 +1,5 @@
 ﻿using KrunkScriptParser.Helpers;
+using KrunkScriptParser.Models.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,8 +17,7 @@ namespace KrunkScriptParser.Models.Blocks
         public KSBlock Block { get; set; }
         public bool HasAReturn { get; set; }
         public bool WasCalled { get; set; }
-        public int Line { get; set; }
-        public int Column { get; set; }
+        public TokenLocation TokenLocation { get; set; }
 
         public IEnumerable<KSStatement> GetInvalidReturns()
         {

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using KrunkScriptParser.Models.Tokens;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,6 +12,7 @@ namespace KrunkScriptParser.Models.Blocks
         public string Name { get; set; }
         public bool IsArray => ArrayDepth > 0;
         public int ArrayDepth { get; private set; }
+        public TokenLocation TokenLocation { get; set; }
 
         public string FullType
         {

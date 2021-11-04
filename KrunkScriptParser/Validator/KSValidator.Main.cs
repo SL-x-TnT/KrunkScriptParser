@@ -24,7 +24,6 @@ namespace KrunkScriptParser.Validator
 
         private TokenIterator _iterator;
         private Token _token => _iterator?.Current;
-        private Token _tokenLineStart; //Keeps track of the token line start position
 
         private TokenReader _reader;
 
@@ -57,7 +56,7 @@ namespace KrunkScriptParser.Validator
             }
             catch (Exception ex)
             {
-                AddValidationException($"Parser failed due to an exception. Message: {ex.Message}");
+                AddValidationException($"Parser failed due to an exception. Message: {ex.Message}", _token);
 
                 return false;
             }
@@ -84,7 +83,6 @@ namespace KrunkScriptParser.Validator
                 try
                 {
                     currentToken = _token;
-                    _tokenLineStart = _token;
 
                     bool hasType = false;
 
@@ -111,7 +109,7 @@ namespace KrunkScriptParser.Validator
                         }
                         else
                         {
-                            AddValidationException($"Unexpected input {nextToken.Value}. Expected variable name or action", nextToken.Line, nextToken.Column, willThrow: true);
+                            AddValidationException($"Unexpected input {nextToken.Value}. Expected variable name or action", nextToken, willThrow: true);
                         }
                     }
                     else
@@ -123,7 +121,7 @@ namespace KrunkScriptParser.Validator
                         }
                         else
                         {
-                            AddValidationException($"Unexpected input {nextToken.Value}. Expected 'public' or 'action'", nextToken.Line, nextToken.Column, willThrow: true);
+                            AddValidationException($"Unexpected input {nextToken.Value}. Expected 'public' or 'action'", nextToken, willThrow: true);
                         }
                     }
                 }
@@ -151,12 +149,13 @@ namespace KrunkScriptParser.Validator
         {
             if(_token.Type != TokenTypes.Type)
             {
-                AddValidationException($"Expected a type. Received '{_token.Value}'", willThrow: true);
+                AddValidationException($"Expected a type. Received '{_token.Value}'", _token, willThrow: true);
             }
 
             KSType type = new KSType
             {
-                Name = _token.Value
+                Name = _token.Value,
+                TokenLocation = new TokenLocation(_token)
             };
 
             _iterator.Next();
@@ -201,15 +200,14 @@ namespace KrunkScriptParser.Validator
             KSVariable variable = new KSVariable
             {
                 Type = ParseType(),
-                Line = _token.Line,
-                Column = _token.Column,
+                TokenLocation = new TokenLocation(_token),
                 Name = ""
             };
 
             //Expecting a name
             if (_token.Type != TokenTypes.Name)
             {
-                AddValidationException($"Expected variable name. Found: {_token.Value}");
+                AddValidationException($"Expected variable name. Found: {_token.Value}", _token);
             }
             else
             {
@@ -237,12 +235,12 @@ namespace KrunkScriptParser.Validator
             {
                 if (_token.Type == TokenTypes.Terminator)
                 {
-                    AddValidationException($"{variable.Name} must have a value");
+                    AddValidationException($"{variable.Name} must have a value", _token);
 
                     _iterator.SkipLine();
                 }
 
-                AddValidationException($"Expected '='. Found: {_token.Value}");
+                AddValidationException($"Expected '='. Found: {_token.Value}", _token);
 
                 _iterator.SkipLine();
 
@@ -258,18 +256,18 @@ namespace KrunkScriptParser.Validator
 
             if (variable.Type.FullType != expression.Type.FullType)
             {
-                AddValidationException($"Variable '{variable.Name}' expected type '{variable.Type.FullType}'. Received '{expression.Type.FullType}'");
+                AddValidationException($"Variable '{variable.Name}' expected type '{variable.Type.FullType}'. Received '{expression.Type.FullType}'", expression.TokenLocation, _token);
             }
 
             if(expression.HasPostfix)
             {
-                AddValidationException($"Postfix increment/decrement can not currently be assigned to a variable or used in an expression");
+                AddValidationException($"Postfix increment/decrement can not currently be assigned to a variable or used in an expression", expression.TokenLocation, _token);
             }
 
             //Line terminator
             if (_token.Type != TokenTypes.Terminator)
             {
-                AddValidationException($"Expected ';'", column: _token.Prev.ColumnEnd);
+                AddValidationException($"Expected ';'", _token);
 
                 int line = _token.Line;
 
@@ -327,7 +325,7 @@ namespace KrunkScriptParser.Validator
             {
                 IKSValue value = _declarationNode.Value[name];
 
-                AddValidationException($"Variable/Action '{name}' has already been declared ({value.Line}:{value.Column})");
+                AddValidationException($"Variable/Action '{name}' has already been declared ({value.TokenLocation.Line}:{value.TokenLocation.Column})", variable.TokenLocation);
 
                 return;
             }
@@ -335,7 +333,7 @@ namespace KrunkScriptParser.Validator
             //Variable name is declared higher up, but that's valid
             if(alreadyDeclared)
             {
-                AddValidationException($"Variable '{name}' hiding previously declared variable", level: Level.Warning);
+                AddValidationException($"Variable '{name}' hiding previously declared variable", variable.TokenLocation, level: Level.Warning);
             }
         }
 
@@ -412,23 +410,11 @@ namespace KrunkScriptParser.Validator
             OnValidationError?.Invoke(this, ex);
         }
 
-        private void AddValidationException(string message, int? line = null, int? column = null, Level level = Level.Error, bool willThrow = false)
+        private void AddValidationException(string message, TokenLocation startToken, TokenLocation endToken = null, Level level = Level.Error, bool willThrow = false)
         {
-            line = line ?? _token?.Line ?? 0;
-            column = column ?? _token?.Column ?? 0;
+            endToken ??= startToken;
 
-            TokenLocation loc = null;
-
-            if(_tokenLineStart != null)
-            {
-                loc = new TokenLocation
-                {
-                    Line = _tokenLineStart.Line,
-                    Column = _tokenLineStart.Column
-                };
-            }
-
-            ValidationException error = new ValidationException(message, line.Value, column.Value, loc, level);
+            ValidationException error = new ValidationException(message, startToken, endToken, level);
 
             if (willThrow)
             {
@@ -438,6 +424,20 @@ namespace KrunkScriptParser.Validator
             {
                 AddValidationException(error);
             }
+        }
+
+        private void AddValidationException(string message, TokenLocation startToken, Token endToken, Level level = Level.Error, bool willThrow = false)
+        {
+            TokenLocation endLocation = endToken == null ? startToken : new TokenLocation(endToken);
+
+            AddValidationException(message, startToken, endLocation, level, willThrow);
+        }
+
+        private void AddValidationException(string message, Token startToken, Token endToken = null, Level level = Level.Error, bool willThrow = false)
+        {
+            endToken ??= startToken;
+
+            AddValidationException(message, new TokenLocation(startToken), new TokenLocation(endToken), level, willThrow);
         }
 
         #endregion
@@ -454,7 +454,7 @@ namespace KrunkScriptParser.Validator
                     //Guessing 10k won't ever be hit under normal conditions
                     if(++_counter >= 10000)
                     {
-                        throw new ValidationException($"Parser entered an infinite loop. Stopping validation...", _token.Line, _token.Column, null);
+                        throw new ValidationException($"Parser entered an infinite loop. Stopping validation...", new TokenLocation(_token), new TokenLocation(_token));
                     }
 
                     return _token;
@@ -518,7 +518,7 @@ namespace KrunkScriptParser.Validator
                 {
                     if(_token == null)
                     {
-                        throw new ValidationException("Unexpected end of file", _token.Line, _token.Column, null);
+                        throw new ValidationException("Unexpected end of file", new TokenLocation(_token), new TokenLocation(_token));
                     }
                 }
 

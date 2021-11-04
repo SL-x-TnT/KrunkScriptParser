@@ -15,8 +15,7 @@ namespace KrunkScriptParser.Validator
         {
             KSAction action = new KSAction
             {
-                Line = _token.Line,
-                Column = _token.Column
+                TokenLocation = new TokenLocation(_token)
             };
 
             if(_token.Value == "public")
@@ -33,7 +32,7 @@ namespace KrunkScriptParser.Validator
 
             if(_token.Type != TokenTypes.Action)
             {
-                AddValidationException($"Expected 'action'. Received '{_token.Value}'");
+                AddValidationException($"Expected 'action'. Received '{_token.Value}'", _token);
             }
             else
             {
@@ -42,7 +41,7 @@ namespace KrunkScriptParser.Validator
 
             if(_token.Type != TokenTypes.Name)
             {
-                AddValidationException($"Missing action name");
+                AddValidationException($"Missing action name", _token);
             }
             else
             {
@@ -54,7 +53,7 @@ namespace KrunkScriptParser.Validator
 
             if (_token.Value != "(")
             {
-                AddValidationException($"Expected start of parameters '('. Received '{_token.Value}'", willThrow: true);
+                AddValidationException($"Expected start of parameters '('. Received '{_token.Value}'", _token, willThrow: true);
             }
             else
             {
@@ -67,7 +66,7 @@ namespace KrunkScriptParser.Validator
             {
                 bool willThrow = _token.Value != "{";
 
-                AddValidationException($"Expected end of parameters ')'. Received '{_token.Value}'", willThrow: willThrow);
+                AddValidationException($"Expected end of parameters ')'. Received '{_token.Value}'", _token, willThrow: willThrow);
             }
             else
             {
@@ -78,12 +77,12 @@ namespace KrunkScriptParser.Validator
 
             if(action.Type != KSType.Void && !action.Block.Lines.Any(x => x is KSStatement statement && statement.IsReturn))
             {
-                AddValidationException($"Action '{action.Name}' missing return statement", action.Line, action.Column);
+                AddValidationException($"Action '{action.Name}' missing return statement", action.TokenLocation, action.Block.TokenLocation);
             }
 
             foreach(KSStatement statement in action.GetInvalidReturns())
             {
-                AddValidationException($"Invalid return type '{statement.Type.FullType}'. Expected: '{action.Type.FullType}'", statement.Line, statement.Column);
+                AddValidationException($"Invalid return type '{statement.Type.FullType}'. Expected: '{action.Type.FullType}'", statement.TokenLocation, statement.EndTokenLocation);
             }
             
             return action;
@@ -92,9 +91,9 @@ namespace KrunkScriptParser.Validator
         /// <summary>
         /// Parses out the arguments sent to an action
         /// </summary>
-        private List<IKSValue> ParseArguments()
+        private List<KSExpression> ParseArguments()
         {
-            List<IKSValue> values = new List<IKSValue>();
+            List<KSExpression> values = new List<KSExpression>();
 
             _iterator.Next();
 
@@ -136,7 +135,7 @@ namespace KrunkScriptParser.Validator
                 {
                     if(_token.Value != "static")
                     {
-                        AddValidationException($"Expected a type. Received modifier {_token.Value}");
+                        AddValidationException($"Expected a type. Received modifier {_token.Value}", _token);
                     }
 
                     _iterator.Next();
@@ -189,19 +188,19 @@ namespace KrunkScriptParser.Validator
                         }
                         else
                         {
-                            AddValidationException($"Spread notation '...' not supported");
+                            AddValidationException($"Spread notation '...' not supported", type.TokenLocation, _token.Prev);
                         }
                     }
                     else
                     {
-                        AddValidationException($"Unexpected value '{multiProp}'");
+                        AddValidationException($"Unexpected value '{multiProp}'", _token);
                     }
                 }
 
                 if (_token.Type != TokenTypes.Name)
                 {
                     //Getting too tired to save invalid code
-                    AddValidationException($"Expected parameter name. Received '{_token.Value}'", willThrow: true);
+                    AddValidationException($"Expected parameter name. Received '{_token.Value}'", _token, willThrow: true);
                 }
 
                 parameters.Add(new KSParameter
@@ -223,7 +222,7 @@ namespace KrunkScriptParser.Validator
 
             if (_token.Value != ")")
             {
-                AddValidationException($"Expected ')'. Received '{_token.Value}'");
+                AddValidationException($"Expected ')'. Received '{_token.Value}'", _token.Prev);
 
                 _iterator.SkipUntil(new HashSet<string> { ")", ";" });
             }
@@ -234,7 +233,7 @@ namespace KrunkScriptParser.Validator
         /// <summary>
         /// Validates that the arguments provided for an action are accurate
         /// </summary>
-        private void ValidateArguments(List<IKSValue> arguments, KSAction action)
+        private void ValidateArguments(List<KSExpression> arguments, KSAction action)
         {
             int parameterIndex = 0;
             int expected = action.Parameters.Count(x => !x.Optional);
@@ -244,7 +243,7 @@ namespace KrunkScriptParser.Validator
             {
                 if (parameterIndex >= action.Parameters.Count)
                 {
-                    AddValidationException($"Invalid argument count. Received {arguments.Count} and expected {action.Parameters.Count}");
+                    AddValidationException($"Invalid argument count. Received {arguments.Count} and expected {action.Parameters.Count}", argument.TokenLocation, argument.EndTokenLocation);
 
                     return;
                 }
@@ -263,11 +262,11 @@ namespace KrunkScriptParser.Validator
                             level = Level.Warning;
                         }
 
-                        AddValidationException($"Global method '{action.Name}' expected type '{parameter.Type.FullType}' for parameter '{parameter.Name}' (arg: {parameterIndex + 1}). Received '{argument.Type.FullType}'. Will still pass validation", level: level);
+                        AddValidationException($"Global method '{action.Name}' expected type '{parameter.Type.FullType}' for parameter '{parameter.Name}' (arg: {parameterIndex + 1}). Received '{argument.Type.FullType}'. Will still pass validation", argument.TokenLocation, argument.EndTokenLocation, level: level);
                     }
                     else if(!action.Global && argument.Type != KSType.Any) //Global actions can receive an "any" type without issues
                     {
-                        AddValidationException($"Expected type '{parameter.Type.FullType}' for parameter '{parameter.Name}' (arg: {parameterIndex + 1}). Received '{argument.Type.FullType}'");
+                        AddValidationException($"Expected type '{parameter.Type.FullType}' for parameter '{parameter.Name}' (arg: {parameterIndex + 1}). Received '{argument.Type.FullType}'", argument.TokenLocation, argument.EndTokenLocation);
                     }
                 }
 
@@ -283,7 +282,10 @@ namespace KrunkScriptParser.Validator
 
             if (parameterIndex < expected && (!isMulti || parameterIndex + 1 < action.Parameters.Count))
             {
-                AddValidationException($"Invalid argument count. Received {arguments.Count} and expected {expected}");
+                TokenLocation tokenStart = arguments.FirstOrDefault()?.TokenLocation ?? new TokenLocation(_token.Prev);
+                TokenLocation tokenEnd = arguments.LastOrDefault()?.EndTokenLocation ?? new TokenLocation(_token);
+
+                AddValidationException($"Invalid argument count. Received {arguments.Count} and expected {expected}", tokenStart, tokenEnd);
             }
         }
     }

@@ -16,12 +16,13 @@ namespace KrunkScriptParser.Validator
         {
             KSBlock block = new KSBlock
             {
-                Keyword = blockType
+                Keyword = blockType,
+                TokenLocation = new TokenLocation(_token)
             };
 
             if(_token.Value != "{")
             {
-                AddValidationException("Missing '{' for block");
+                AddValidationException("Missing '{' for block", _token.Prev);
             }
             else
             {
@@ -44,12 +45,14 @@ namespace KrunkScriptParser.Validator
 
             while(_token.Value != "}")
             {
+                TokenLocation lineStart = new TokenLocation(_token);
+
                 IKSValue line = ParseLine();
 
                 //If we're not getting anywhere, throw an exception
                 if(currentToken == _token)
                 {
-                    AddValidationException("Failed to parse line", willThrow: true);
+                    AddValidationException("Failed to parse line", lineStart, willThrow: true);
                 }
 
                 if(line is KSConditionalBlock conditionalBlock)
@@ -66,7 +69,7 @@ namespace KrunkScriptParser.Validator
                     {
                         if(conditionalState > 2)
                         {
-                            AddValidationException($"'{conditionalBlock.Key}' block without an 'if' block", conditionalBlock.Line, conditionalBlock.Column);
+                            AddValidationException($"'{conditionalBlock.Key}' block without an 'if' block", conditionalBlock.TokenLocation);
                         }
 
                         conditionalState = int.MaxValue;
@@ -87,7 +90,7 @@ namespace KrunkScriptParser.Validator
 
             if (blockType != "action" && _token.Type == TokenTypes.Terminator)
             {
-                AddValidationException($"Unnecessary terminator ';'", level: Level.Warning);
+                AddValidationException($"Unnecessary terminator ';'", _token, level: Level.Warning);
 
                 _iterator.Next();
             }
@@ -96,7 +99,7 @@ namespace KrunkScriptParser.Validator
 
         private IKSValue ParseLine()
         {
-            _tokenLineStart = _token;
+            TokenLocation lineStart = new TokenLocation(_token);
 
             string key = String.Empty;
 
@@ -128,8 +131,7 @@ namespace KrunkScriptParser.Validator
                     KSStatement statement = new KSStatement
                     {
                         Statement = "return",
-                        Line = _token.Line,
-                        Column = _token.Column,
+                        TokenLocation = new TokenLocation(_token)
                     };
                     
                     //Has a value
@@ -169,7 +171,7 @@ namespace KrunkScriptParser.Validator
 
                     if(!found)
                     {
-                        AddValidationException($"Invalid call to '{key}' inside '{_blockNode.Value.Keyword}' statement");
+                        AddValidationException($"Invalid call to '{key}' inside '{_blockNode.Value.Keyword}' statement", lineStart, _token);
                     }
                 }
             }
@@ -188,7 +190,7 @@ namespace KrunkScriptParser.Validator
 
                     if(next.Type != TokenTypes.Type)
                     {
-                        AddValidationException($"Expected a type cast. Received '{next.Value}'");
+                        AddValidationException($"Expected a type cast. Received '{next.Value}'", _token);
 
                         //Go to end of terminator
                         _iterator.SkipUntil(TokenTypes.Terminator);
@@ -223,21 +225,21 @@ namespace KrunkScriptParser.Validator
 
                             if (!variableName.Variable.Value.Type.IsArray)
                             {
-                                AddValidationException($"Expected an array for 'remove'. Received: '{variableName.Variable.Value.Type}'. Variable '{variableName.Variable.Name}'");
+                                AddValidationException($"Expected an array for 'remove'. Received: '{variableName.Variable.Value.Type}'. Variable '{variableName.Variable.Name}'", value.TokenLocation, value.EndTokenLocation);
                                 _iterator.SkipUntil(TokenTypes.Terminator);
                             }
                             else if (finalExpressionType.ArrayDepth < 0) //Being indexed too far
                             {
-                                AddValidationException($"Array indexed too far for 'remove'. Variable '{variableName.Variable.Name}'");
+                                AddValidationException($"Array indexed too far for 'remove'. Variable '{variableName.Variable.Name}'", value.TokenLocation, value.EndTokenLocation);
                             }
                             else if (finalExpressionType.ArrayDepth == variableName.Variable.Value.Type.ArrayDepth) //Wasn't indexed at all
                             {
-                                AddValidationException($"Expected an array property for 'remove'. Variable '{variableName.Variable.Name}'");
+                                AddValidationException($"Expected an array property for 'remove'. Variable '{variableName.Variable.Name}'", value.TokenLocation, value.EndTokenLocation);
                             }
                         }
                         else
                         {
-                            AddValidationException($"Expected an array type for 'remove'. Received '{value.Type}'");
+                            AddValidationException($"Expected an array type for 'remove'. Received '{value.Type}'", value.TokenLocation, value.EndTokenLocation);
                             _iterator.SkipUntil(TokenTypes.Terminator);
                         }
                     }
@@ -251,7 +253,7 @@ namespace KrunkScriptParser.Validator
                     if (!array.Type.IsArray && array.Type != KSType.Any)
                     {
                         hasError = true;
-                        AddValidationException($"Expected an array. Received '{array.Type}'", array.Line, array.Column);
+                        AddValidationException($"Expected an array. Received '{array.Type}'", array.TokenLocation, array.EndTokenLocation);
                     }
 
                     array.Type.DecreaseDepth();
@@ -259,24 +261,24 @@ namespace KrunkScriptParser.Validator
 
                     if(!hasError && array.Type != item.Type && item.Type != null) //Null item.Type means it failed to parse the expression before the terminator
                     {
-                        AddValidationException($"Expected type '{array.Type}'. Received '{item.Type}'", item.Line, item.Column);
+                        AddValidationException($"Expected type '{array.Type}'. Received '{item.Type}'", item.TokenLocation, item.EndTokenLocation);
                     }
                 }
                 else
                 {
-                    AddValidationException($"Unknown command '{method}'");
+                    AddValidationException($"Unknown command '{method}'", _token.Prev);
                 }
             }
             else
             {
-                AddValidationException($"Unexpected value '{_token.Value}'");
+                AddValidationException($"Unexpected value '{_token.Value}'", _token);
 
                 _iterator.SkipUntil(TokenTypes.Terminator);
             }
 
             if(_token.Type != TokenTypes.Terminator)
             {
-                AddValidationException($"Missing ';' on line {_token.Line}");
+                AddValidationException($"Missing ';' on line {_token.Line}", _token.Prev);
             }
             else
             {
@@ -294,8 +296,7 @@ namespace KrunkScriptParser.Validator
             KSConditionalBlock block = new KSConditionalBlock
             {
                 Key = key,
-                Line = _token.Line,
-                Column = _token.Column
+                TokenLocation = new TokenLocation(_token)
             };
 
             _iterator.Next();
@@ -305,7 +306,7 @@ namespace KrunkScriptParser.Validator
             {
                 if (_token.Value != "(")
                 {
-                    AddValidationException($"Missing start of '{key}' statement condition '('");
+                    AddValidationException($"Missing start of '{key}' statement condition '('", _token.Prev);
 
                     _iterator.SkipUntil(new HashSet<string> { "{" });
                 }
@@ -317,7 +318,7 @@ namespace KrunkScriptParser.Validator
 
                     if (_token.Value != ")")
                     {
-                        AddValidationException($"Missing end of '{key}' statement condition ')'");
+                        AddValidationException($"Missing end of '{key}' statement condition ')'", _token.Prev);
 
                         _iterator.SkipUntil(new HashSet<string> { "{" });
                     }
@@ -328,7 +329,7 @@ namespace KrunkScriptParser.Validator
 
                     if(block.Condition.Type != KSType.Bool && block.Condition.Type != KSType.Any)
                     {
-                        AddValidationException($"if/else if statement conditions require type '{KSType.Bool}' or '{KSType.Any}'. Received '{block.Condition.Type}'");
+                        AddValidationException($"if/else if statement conditions require type '{KSType.Bool}' or '{KSType.Any}'. Received '{block.Condition.Type}'", block.Condition.TokenLocation, block.Condition.EndTokenLocation);
                     }
                 }
             }
@@ -345,8 +346,7 @@ namespace KrunkScriptParser.Validator
             KSLoopBlock block = new KSLoopBlock
             {
                 Key = key,
-                Line = _token.Line,
-                Column = _token.Column
+                TokenLocation = new TokenLocation(_token.Prev)
             };
 
             //PATCH: Dealing with if statement assignments in their (). A new level won't hurt anything
@@ -358,7 +358,7 @@ namespace KrunkScriptParser.Validator
 
                 if (_token.Value != "(")
                 {
-                    AddValidationException($"Missing start of '{key}' statement condition '('");
+                    AddValidationException($"Missing start of '{key}' statement condition '('", _token.Prev);
 
                     _iterator.SkipUntil(new HashSet<string> { "{" });
                 }
@@ -383,7 +383,7 @@ namespace KrunkScriptParser.Validator
 
                             if (_token.Type != TokenTypes.Terminator)
                             {
-                                AddValidationException($"Missing ';' in '{key}' statement");
+                                AddValidationException($"Missing ';' in '{key}' statement", _token);
                             }
                             else
                             {
@@ -396,12 +396,12 @@ namespace KrunkScriptParser.Validator
 
                         if (_token.Type != TokenTypes.Terminator)
                         {
-                            AddValidationException($"Missing ';' in '{key}' statement");
+                            AddValidationException($"Missing ';' in '{key}' statement", _token);
                         }
 
                         if(block.Condition.Type != KSType.Bool)
                         {
-                            AddValidationException($"Condition in '{key}' statement must return type '{KSType.Bool}'");
+                            AddValidationException($"Condition in '{key}' statement must return type '{KSType.Bool}'", block.Condition.TokenLocation, block.Condition.EndTokenLocation);
                         }
 
                         _iterator.Next();
@@ -411,13 +411,13 @@ namespace KrunkScriptParser.Validator
 
                         if (!block.Increment.HasAssignment && !block.Increment.HasPostfix)
                         {
-                            AddValidationException($"Missing assignment in '{key}' statement");
+                            AddValidationException($"Missing assignment in '{key}' statement", block.Increment.TokenLocation, block.Increment.EndTokenLocation);
                         }
                     }
 
                     if (_token.Value != ")")
                     {
-                        AddValidationException($"Missing end of '{key}' statement condition ')'");
+                        AddValidationException($"Missing end of '{key}' statement condition ')'", _token.Prev);
                     }
                     else
                     {
@@ -426,7 +426,7 @@ namespace KrunkScriptParser.Validator
 
                     if (block.Condition.Type != KSType.Bool)
                     {
-                        AddValidationException($"if/else if statement conditions require type '{KSType.Bool}'. Received '{block.Condition.Type}'");
+                        AddValidationException($"if/else if statement conditions require type '{KSType.Bool}'. Received '{block.Condition.Type}'", block.Condition.TokenLocation, block.Condition.EndTokenLocation);
                     }
                 }
 

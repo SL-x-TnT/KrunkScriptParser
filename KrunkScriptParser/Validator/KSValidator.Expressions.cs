@@ -16,8 +16,7 @@ namespace KrunkScriptParser.Validator
         {
             KSExpression expression = new KSExpression
             {
-                Line = _token.Line,
-                Column = _token.Column
+                TokenLocation = new TokenLocation(_token)
             };
 
             /*
@@ -68,8 +67,7 @@ namespace KrunkScriptParser.Validator
                     //Treat it as a cast?
                     expression.Items.Add(new ForceConversion(KSType.Number, false)
                     {
-                        Line = _token.Line,
-                        Column = _token.Column
+                        TokenLocation = new TokenLocation(_token)
                     });
 
                     _iterator.Next();
@@ -79,8 +77,7 @@ namespace KrunkScriptParser.Validator
                 ExpressionValue value = new ExpressionValue
                 {
                     Value = ParseValue(depth),
-                    Line = _token.Line,
-                    Column = _token.Column
+                    TokenLocation = new TokenLocation(_token)
                 };
 
                 value.Type = new KSType(value.Value.Type);
@@ -104,7 +101,7 @@ namespace KrunkScriptParser.Validator
                     {
                         if(expression.HasAssignment)
                         {
-                            AddValidationException($"Invalid operator '{op.Operator}'", op.Line, op.Column);
+                            AddValidationException($"Invalid operator '{op.Operator}'", op.TokenLocation);
                         }
                         else
                         {
@@ -129,7 +126,7 @@ namespace KrunkScriptParser.Validator
                                     {
                                         if (!showedError)
                                         {
-                                            AddValidationException($"Invalid left-hand side in assignment", item.Line, item.Column);
+                                            AddValidationException($"Invalid left-hand side in assignment", item.TokenLocation);
                                             showedError = true;
                                         }
                                     }
@@ -139,7 +136,7 @@ namespace KrunkScriptParser.Validator
 
                                 if (!showedError)
                                 {
-                                    AddValidationException($"Invalid left-hand side in assignment", item.Line, item.Column);
+                                    AddValidationException($"Invalid left-hand side in assignment", item.TokenLocation);
                                     showedError = true;
                                 }
 
@@ -148,7 +145,7 @@ namespace KrunkScriptParser.Validator
 
                             if(!hasVariable && !showedError)
                             {
-                                AddValidationException($"Invalid left-hand side in assignment");
+                                AddValidationException($"Invalid left-hand side in assignment", op.TokenLocation);
                             }
                         }
 
@@ -176,14 +173,14 @@ namespace KrunkScriptParser.Validator
                             }
 
                             showedError = true;
-                            AddValidationException($"Invalid input with {op.Operator}", item.Line, item.Column);
+                            AddValidationException($"Invalid input with {op.Operator}", item.TokenLocation);
 
                             break;
                         }
 
                         if (!hasVariable && !showedError)
                         {
-                            AddValidationException($"Invalid input with {op.Operator}");
+                            AddValidationException($"Invalid input with {op.Operator}", op.TokenLocation);
                         }
 
                         expression.HasPostfix = true;
@@ -203,7 +200,7 @@ namespace KrunkScriptParser.Validator
             {
                 if(_token.Value != ")")
                 {
-                    AddValidationException($"Missing ')' at end of group");
+                    AddValidationException($"Missing ')' at end of group", _token.Prev);
                 }
                 else
                 {
@@ -329,15 +326,15 @@ namespace KrunkScriptParser.Validator
                     {
                         if (forceConversion.Type == KSType.LengthOf)
                         {
-                            AddValidationException($"lengthOf expects an array, '{KSType.String.FullType}', or '{KSType.Any}'. Received '{node.Value.Type}'");
+                            AddValidationException($"lengthOf expects an array, '{KSType.String.FullType}', or '{KSType.Any}'. Received '{node.Value.Type}'", node.Value.TokenLocation);
                         }
                         else if (forceConversion.Type == KSType.NotEmpty)
                         {
-                            AddValidationException($"notEmpty expects an '{KSType.Object}' or '{KSType.Any}'. Received '{node.Value.Type}'");
+                            AddValidationException($"notEmpty expects an '{KSType.Object}' or '{KSType.Any}'. Received '{node.Value.Type}'", node.Value.TokenLocation);
                         }
                         else
                         {
-                            AddValidationException($"Invalid cast from '{node.Value.Type}' to '{forceConversion.ReturnType.FullType}'");
+                            AddValidationException($"Invalid cast from '{node.Value.Type}' to '{forceConversion.ReturnType.FullType}'", node.Value.TokenLocation);
                         }
                     }
 
@@ -366,13 +363,12 @@ namespace KrunkScriptParser.Validator
             {
                 op = new ExpressionOperator(sOp)
                 {
-                    Line = _token.Line,
-                    Column = _token.Column
+                    TokenLocation = new TokenLocation(_token)
                 };
 
                 if(op.Priority == int.MaxValue)
                 {
-                    AddValidationException($"Unexpected value '{op.Operator}' found");
+                    AddValidationException($"Unexpected value '{op.Operator}' found", op.TokenLocation);
 
                     return false;
                 }
@@ -390,8 +386,7 @@ namespace KrunkScriptParser.Validator
             if(_token.Value == "!")
             {
                 conversion = new ForceConversion(KSType.Bool, true);
-                conversion.Line = _token.Line;
-                conversion.Column = _token.Column;
+                conversion.TokenLocation = new TokenLocation(_token);
 
                 _iterator.Next();
 
@@ -400,8 +395,7 @@ namespace KrunkScriptParser.Validator
             else if (_token.Value == "~") //Treating as a cast
             {
                 conversion = new ForceConversion(KSType.Number, false);
-                conversion.Line = _token.Line;
-                conversion.Column = _token.Column;
+                conversion.TokenLocation = new TokenLocation(_token);
 
                 _iterator.Next();
 
@@ -412,12 +406,11 @@ namespace KrunkScriptParser.Validator
                 _iterator.Next();
 
                 conversion = new ForceConversion(ParseType(), false, null, true);
-                conversion.Line = _token.Line;
-                conversion.Column = _token.Column;
+                conversion.TokenLocation = new TokenLocation(_token);
 
-                if(_token.Value != ")")
+                if (_token.Value != ")")
                 {
-                    AddValidationException($"Missing ')' on '{conversion.Type}' cast");
+                    AddValidationException($"Missing ')' on '{conversion.Type}' cast", _token.Prev);
                 }
 
                 _iterator.Next();
@@ -441,12 +434,11 @@ namespace KrunkScriptParser.Validator
                         conversion = new ForceConversion(KSType.NotEmpty, false, KSType.Bool);
                         break;
                     default:
-                        AddValidationException($"Unexpected '{_token.Value}' statement", willThrow: true);
+                        AddValidationException($"Unexpected '{_token.Value}' statement", _token, willThrow: true);
                         break;
                 }
 
-                conversion.Line = _token.Line;
-                conversion.Column = _token.Column;
+                conversion.TokenLocation = new TokenLocation(_token);
 
                 _iterator.Next();
 
@@ -460,30 +452,31 @@ namespace KrunkScriptParser.Validator
         {
             if(left?.HasType == false)
             {
-                AddValidationException($"Expected a value with a type", left.Line, left.Column, willThrow: true);
+                AddValidationException($"Expected a value with a type", left.TokenLocation, willThrow: true);
             }
 
             if (right?.HasType == false)
             {
-                AddValidationException($"Expected a value with a type", left.Line, left.Column, willThrow: true);
+                AddValidationException($"Expected a value with a type", right.TokenLocation, willThrow: true);
             }
 
             KSType leftType = left?.Type ?? KSType.Unknown;
             KSType rightType = right?.Type ?? KSType.Unknown;
             bool showedError = false;
+            ExpressionItem rightItem = right ?? left;
 
             if(op.IsPostfix)
             {
                 if(leftType != KSType.Number)
                 {
-                    AddValidationException($"Mismatched type. Expected '{KSType.Number}'. Received '{leftType?.FullType}{op.Operator}'", op.Line, op.Column);
+                    AddValidationException($"Mismatched type. Expected '{KSType.Number}'. Received '{leftType?.FullType}{op.Operator}'", left.TokenLocation, rightItem.TokenLocation);
                 }
             }
             else if (op.IsTernaryCondition)
             {
                 if(leftType != KSType.Bool)
                 {
-                    AddValidationException($"Invalid ternary condition. Expected '{KSType.Bool}'. Received '{leftType?.FullType}'", op.Line, op.Column);
+                    AddValidationException($"Invalid ternary condition. Expected '{KSType.Bool}'. Received '{leftType?.FullType}'", left.TokenLocation, rightItem.TokenLocation);
                 }
             }
             else if (leftType != rightType)
@@ -491,7 +484,7 @@ namespace KrunkScriptParser.Validator
                 //Special condition
                 if (op.Operator != "=" || leftType != KSType.Any)
                 {
-                    AddValidationException($"Mismatched types. Expected '{leftType?.FullType}'. Received '{leftType?.FullType} {op.Operator} {rightType?.FullType}'", op.Line, op.Column);
+                    AddValidationException($"Mismatched types. Expected '{leftType?.FullType}'. Received '{leftType?.FullType} {op.Operator} {rightType?.FullType}'", left.TokenLocation, rightItem.TokenLocation);
 
                     showedError = true;
                 }
@@ -512,7 +505,7 @@ namespace KrunkScriptParser.Validator
                     {
                         string expected = $"'{String.Join("' or '", op.ValidTypes)}'";
 
-                        AddValidationException($"Expected {expected} with operator '{op.Operator}'. Received '{leftType.FullType} {op.Operator} {rightType.FullType}'", op.Line, op.Column);
+                        AddValidationException($"Expected {expected} with operator '{op.Operator}'. Received '{leftType.FullType} {op.Operator} {rightType.FullType}'", left.TokenLocation, rightItem.TokenLocation);
                     }
                 }
             }

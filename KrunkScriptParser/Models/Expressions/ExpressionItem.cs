@@ -1,4 +1,5 @@
 ﻿using KrunkScriptParser.Models.Blocks;
+using KrunkScriptParser.Models.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,7 +14,6 @@ namespace KrunkScriptParser.Models.Expressions
         public abstract bool HasType { get; }
         public KSType Type { get; set; }
         public virtual int Priority { get; set; }
-        public int Line { get; set; }
-        public int Column { get; set; }
+        public TokenLocation TokenLocation { get; set; }
     }
 }

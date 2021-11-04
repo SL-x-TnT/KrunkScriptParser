@@ -35,7 +35,7 @@ namespace KrunkScriptParser.Validator
             catch (ValidationException ex)
             {
                 AddValidationException(ex);
-                AddValidationException($"Failed to parse 'globalObjects.krnk' file. Additional errors may occur", level: Level.Warning);
+                AddValidationException($"Failed to parse 'globalObjects.krnk' file. Additional errors may occur", _token, level: Level.Warning);
             }
         }
 

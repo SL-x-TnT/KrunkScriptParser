@@ -1,4 +1,5 @@
-﻿using System;
+﻿using KrunkScriptParser.Models.Tokens;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,7 +10,11 @@ namespace KrunkScriptParser.Models.Blocks
     public interface IKSValue
     {
         public KSType Type { get; set; }
-        public int Line { get; set; }
-        public int Column { get; set; }
+        public TokenLocation TokenLocation { get; set; }
+    }
+
+    public interface IKSEndToken
+    {
+        public TokenLocation EndTokenLocation { get; }
     }
 }
