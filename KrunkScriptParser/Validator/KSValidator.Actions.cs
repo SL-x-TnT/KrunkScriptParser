@@ -208,7 +208,8 @@ namespace KrunkScriptParser.Validator
                     Name = _token.Value,
                     Type = type,
                     MultiProp = isMultiProp,
-                    Optional = optional
+                    Optional = optional,
+                    TokenLocation = new TokenLocation(_token)
                 });
 
                 _iterator.Next();

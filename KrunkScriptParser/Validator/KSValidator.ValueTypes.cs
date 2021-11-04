@@ -53,6 +53,16 @@ namespace KrunkScriptParser.Validator
                         AddValidationException($"Unterminated string literal", _token);
                     }
                 }
+                else if(_token.Type == TokenTypes.Number)
+                {
+                    //Leading 0s breaks scripts without throwing a validation exception
+                    string sValue = value.Value.Split('.').First();
+
+                    if(sValue.Length > 1 && sValue.StartsWith("0") && !value.Value.Contains("x", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        AddValidationException($"Leading 0s in numbers causes scripts to break", _token);
+                    }
+                }
 
                 return value;
             }

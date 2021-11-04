@@ -45,7 +45,6 @@ namespace KrunkScriptParser.Validator
                     continue;
                 }
 
-
                 ExpressionOperator op = null;
 
                 if (expression.Items.LastOrDefault() is KSExpression)

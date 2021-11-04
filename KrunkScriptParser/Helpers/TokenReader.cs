@@ -198,7 +198,7 @@ namespace KrunkScriptParser.Helpers
             {
                 builder.Append(ReadChar());
 
-                if (PeekChar() == 'x')
+                if (PeekChar() == 'x' || PeekChar() == 'X')
                 {
                     isHex = true;
 
@@ -210,9 +210,9 @@ namespace KrunkScriptParser.Helpers
             {
                 char c = PeekChar();
 
-                if(isHex && IsHex(c) ||  //Hex
-                    char.IsDigit(c) ||           //Digit
-                    c == '.')                    //Double/Float   
+                if(isHex && IsHex(c) ||         //Hex
+                    char.IsDigit(c) ||          //Digit
+                    (!isHex && c == '.'))       //Double/Float   
                 {
                     builder.Append(ReadChar());
                 }
