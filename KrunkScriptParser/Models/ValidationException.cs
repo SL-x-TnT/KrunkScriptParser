@@ -7,15 +7,22 @@ using System.Threading.Tasks;
 
 namespace KrunkScriptParser.Models
 {
-    public enum Level { Info, Warning, Error };
+    public enum Level
+    {
+        Error = 1,
+        Warning,
+        Info,
+        Hint
+    };
 
     public class ValidationException : Exception
     {
         public int LineNumber { get; private set; }
         public int ColumnNumber { get; private set; }
+        public int Length { get; private set; }
         public Level Level { get; private set; }
 
-        public ValidationException(string text, int lineNumber, int columnNumber, Level level = Level.Error) : base(text)
+        public ValidationException(string text, int lineNumber, int columnNumber, int tokenLength, Level level = Level.Error) : base(text)
         {
             LineNumber = lineNumber;
             ColumnNumber = columnNumber;

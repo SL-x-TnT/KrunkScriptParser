@@ -201,7 +201,7 @@ namespace KrunkScriptParser.Validator
                 if (_token.Type != TokenTypes.Name)
                 {
                     //Getting too tired to save invalid code
-                    throw new ValidationException($"Expected parameter name. Received '{_token.Value}'", _token.Line, _token.Column);
+                    AddValidationException($"Expected parameter name. Received '{_token.Value}'", willThrow: true);
                 }
 
                 parameters.Add(new KSParameter

@@ -100,7 +100,7 @@ namespace KrunkScriptParser.Validator
                         }
                         else
                         {
-                            throw new ValidationException($"Unexpected input {nextToken.Value}. Expected variable name or action", nextToken.Line, nextToken.Column);
+                            AddValidationException($"Unexpected input {nextToken.Value}. Expected variable name or action", nextToken.Line, nextToken.Column, willThrow: true);
                         }
                     }
                     else
@@ -112,7 +112,7 @@ namespace KrunkScriptParser.Validator
                         }
                         else
                         {
-                            throw new ValidationException($"Unexpected input {nextToken.Value}. Expected 'public' or 'action'", nextToken.Line, nextToken.Column);
+                            AddValidationException($"Unexpected input {nextToken.Value}. Expected 'public' or 'action'", nextToken.Line, nextToken.Column, willThrow: true);
                         }
                     }
                 }
@@ -406,7 +406,7 @@ namespace KrunkScriptParser.Validator
             line = line ?? _token?.Line ?? 0;
             column = column ?? _token?.Column ?? 0;
 
-            ValidationException error = new ValidationException(message, line.Value, column.Value, level);
+            ValidationException error = new ValidationException(message, line.Value, column.Value, _token?.Value?.Length ?? 1, level);
 
             if (willThrow)
             {
@@ -432,7 +432,7 @@ namespace KrunkScriptParser.Validator
                     //Guessing 10k won't ever be hit under normal conditions
                     if(++_counter >= 10000)
                     {
-                        throw new ValidationException($"Parser entered an infinite loop. Stopping validation...", _token.Line, _token.Column);
+                        throw new ValidationException($"Parser entered an infinite loop. Stopping validation...", _token.Line, _token.Column, _token?.Value?.Length ?? 1);
                     }
 
                     return _token;
@@ -496,7 +496,7 @@ namespace KrunkScriptParser.Validator
                 {
                     if(_token == null)
                     {
-                        throw new ValidationException("Unexpected end of file", _token.Line, _token.Column);
+                        throw new ValidationException("Unexpected end of file", _token.Line, _token.Column, _token?.Value?.Length ?? 1);
                     }
                 }
 

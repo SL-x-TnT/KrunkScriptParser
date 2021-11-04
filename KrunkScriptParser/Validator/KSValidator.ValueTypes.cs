@@ -19,7 +19,7 @@ namespace KrunkScriptParser.Validator
         {
             if (_token.Type == TokenTypes.Terminator)
             {
-                throw new ValidationException($"Variables", _token.Line, _token.Column);
+                AddValidationException($"Unexpected ';'", willThrow: true);
             }
 
             if (_token.Type == TokenTypes.Punctuation)

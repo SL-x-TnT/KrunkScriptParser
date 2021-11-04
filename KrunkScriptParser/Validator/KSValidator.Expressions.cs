@@ -442,7 +442,8 @@ namespace KrunkScriptParser.Validator
                         conversion = new ForceConversion(KSType.NotEmpty, false, KSType.Bool);
                         break;
                     default:
-                        throw new ValidationException($"Unexpected '{_token.Value}' statement", _token.Line, _token.Column);
+                        AddValidationException($"Unexpected '{_token.Value}' statement", willThrow: true);
+                        break;
                 }
 
                 conversion.Line = _token.Line;
