@@ -148,16 +148,19 @@ namespace KrunkScriptParser.Validator
 
             KSObject ksObject = new KSObject();
 
-            while ((_token.Type != TokenTypes.Punctuation || _token.Value != "}") && _token.Type != TokenTypes.Terminator)
+            while (_token.Value != "}" && _token.Type != TokenTypes.Terminator)
             {
+                if(_token.Type == TokenTypes.Type)
+                {
+                    AddValidationException($"Objects do not support declaring types for property members");
+
+                    ParseType();
+                }
+
                 //Property name
                 if (_token.Type != TokenTypes.Name)
                 {
-                    bool willThrow = _iterator.PeekNext().Type != TokenTypes.Name;
-
-                    AddValidationException($"Expected property name. Found: '{_token.Value}'", willThrow: willThrow);
-
-                    _iterator.Next();
+                    AddValidationException($"Expected property name. Found: '{_token.Value}'", willThrow: true);
                 }
 
                 string name = _token.Value;
@@ -428,7 +431,7 @@ namespace KrunkScriptParser.Validator
 
                     if (!TryGetDeclaration(initialToken.Value, out foundAction))
                     {
-                        AddValidationException($"Action '{_token.Value}' is not defined");
+                        AddValidationException($"Action '{initialToken.Value}' is not defined");
 
                         //Attempt to fix
                         //_iterator.SkipUntil(new HashSet<string> { ";", ",", "}" });
