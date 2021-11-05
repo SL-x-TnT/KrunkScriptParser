@@ -29,6 +29,8 @@ namespace KrunkScriptParser.Validator
                 {
                     IKSValue obj = ParseObject(depth);
 
+                    _iterator.Next();
+
                     return obj;
                 }
             }
@@ -64,6 +66,8 @@ namespace KrunkScriptParser.Validator
                     }
                 }
 
+                _iterator.Next();
+
                 return value;
             }
             else if (_token.Type == TokenTypes.Name || _token.Type == TokenTypes.GlobalObject) //Setting using another variable or GAME/UTILS
@@ -98,14 +102,9 @@ namespace KrunkScriptParser.Validator
                             _iterator.Next();
                         }
                     }
-
-                    //Patch to handle arrays in
-                    //
-                    if (_iterator.PeekNext().Value == "," || _iterator.PeekNext().Value == "}")
-                    {
-                        //_iterator.Next();
-                    }
                 }
+
+                _iterator.Next();
 
                 return variableName;
             }
@@ -233,12 +232,17 @@ namespace KrunkScriptParser.Validator
                     {
                         AddValidationException($"Unexpected value '{_token.Value}'", _token, willThrow: true);
                     }
+
+                    //Go back 1 as we'll go to the next token after this method
+                    _iterator.Prev();
+                    break;
                 }
             }
 
             return ksObject;
         }
 
+        //Parses the creation of an array
         private KSArray ParseArray(bool isString)
         {
             KSArray ksArray = new KSArray();
@@ -265,36 +269,7 @@ namespace KrunkScriptParser.Validator
             //String aren't arrays, but we're using this method for the indexing below
             if (!isString)
             {
-                //Read expression for all values
-                while (true)
-                {
-                    //Depth of 1 so objects don't need ;
-                    KSExpression arrayValue = ParseExpression(depth: 1);
-
-                    if (arrayValue.Type != valueType)
-                    {
-                        AddValidationException($"Expected type '{arrayValue.Type}'. Received '{valueType}'", arrayValue.TokenLocation, level: Level.Error);
-                    }
-
-                    ksArray.Values.Add(arrayValue);
-
-                    //More values
-                    if (_token.Value == ",")
-                    {
-                        _iterator.Next();
-                    }
-                    else if (_token.Value == "]")
-                    {
-                        _iterator.Next();
-
-                        break;
-                    }
-                    else //...
-                    {
-                        AddValidationException($"Unexpected value '{_token.Value}'", _token);
-                        break;
-                    }
-                }
+                ksArray.Values.AddRange(ParseArrayInitialization(valueType));
             }
 
             bool isDeclared = true;
@@ -318,6 +293,44 @@ namespace KrunkScriptParser.Validator
             }
 
             return ksArray;
+        }
+
+        private List<KSExpression> ParseArrayInitialization(KSType valueType)
+        {
+            List<KSExpression> values = new List<KSExpression>();
+
+            //Read expression for all values
+            while (true)
+            {
+                //Depth of 1 so objects don't need ;
+                KSExpression arrayValue = ParseExpression(depth: 1);
+
+                if (arrayValue.Type != valueType)
+                {
+                    AddValidationException($"Expected type '{arrayValue.Type}'. Received '{valueType}'", arrayValue.TokenLocation, level: Level.Error);
+                }
+
+                values.Add(arrayValue);
+
+                //More values
+                if (_token.Value == ",")
+                {
+                    _iterator.Next();
+                }
+                else if (_token.Value == "]")
+                {
+                    _iterator.Next();
+
+                    break;
+                }
+                else //...
+                {
+                    AddValidationException($"Unexpected value '{_token.Value}'", _token);
+                    break;
+                }
+            }
+
+            return values;
         }
 
         private IKSValue ParseName()

@@ -91,7 +91,9 @@ namespace KrunkScriptParser.Validator
                 
                 if (depth == 0 || (_token.Value != "," && _token.Value != "]"))
                 {
-                    _iterator.Next();
+                    //Console.WriteLine($"{_token.Value} | {value.Value.GetType()}");
+
+                    //_iterator.Next();
                 }
 
                 if(TryReadOperator(out op))

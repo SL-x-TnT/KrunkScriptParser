@@ -51,13 +51,13 @@ namespace KrunkScriptParser.Models.Expressions
             //Groups are the top priority
             switch (Operator ?? "")
             {
-                case ".": //Member access -- Not used yet
+                case ".": //Member access
                     ValidTypes.Add(KSType.Object);
                     ValidTypes.Add(KSType.Any);
                     Priority = MaxPriority - 1;
                     ReturnType = KSType.Any;
                     break;
-                case "[": //Array index -- Not used yet
+                case "[": //Array index
                     ValidTypes.Add(KSType.Any);
                     ArrayValid = true;
                     Priority = MaxPriority - 1;
