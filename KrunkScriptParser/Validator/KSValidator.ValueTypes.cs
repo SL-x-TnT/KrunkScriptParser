@@ -81,7 +81,17 @@ namespace KrunkScriptParser.Validator
                     TokenLocation = variable?.TokenLocation
                 };
 
-                if (_iterator.PeekNext().Value == "[")
+                Token nextToken = _iterator.PeekNext();
+
+                if(nextToken.Value == ".")
+                {
+                    AddValidationException($"Invalid member property access. Assign method result to a new variable first", nextToken);
+
+                    _iterator.SkipUntil(TokenTypes.Terminator);
+                    _iterator.Prev(); //Will call .Next before method is over
+                }
+
+                if (nextToken.Value == "[")
                 {
                     _iterator.Next();
 
@@ -110,7 +120,7 @@ namespace KrunkScriptParser.Validator
             }
             else
             {
-                AddValidationException($"Expected value. Found: {_token.Value}", _token, willThrow: true);
+                AddValidationException($"Expected value. Found: '{_token.Value}'", _token, willThrow: true);
 
 
                 return null;

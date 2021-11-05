@@ -127,7 +127,7 @@ namespace KrunkScriptParser.Validator
                                     {
                                         if (!showedError)
                                         {
-                                            AddValidationException($"Invalid left-hand side in assignment", item.TokenLocation);
+                                            AddValidationException($"Invalid left-hand side in assignment", conversion.TokenLocation, conversion.EndTokenLocation);
                                             showedError = true;
                                         }
                                     }
@@ -206,6 +206,13 @@ namespace KrunkScriptParser.Validator
                 else
                 {
                     _iterator.Next();
+                }
+
+                if(_token.Value == ".")
+                {
+                    AddValidationException($"Invalid member property access. Assign to a new variable first", _token);
+
+                    _iterator.SkipUntil(TokenTypes.Terminator);
                 }
             }
 
@@ -408,10 +415,13 @@ namespace KrunkScriptParser.Validator
             }
             else if(_token.Value == "(" && _iterator.PeekNext().Type == TokenTypes.Type)
             {
+                TokenLocation tokenStart = new TokenLocation(_token);
+
                 _iterator.Next();
 
                 conversion = new ForceConversion(ParseType(), false, null, true);
-                conversion.TokenLocation = new TokenLocation(_token);
+                conversion.TokenLocation = tokenStart;
+                conversion.EndTokenLocation = new TokenLocation(_token);
 
                 if (_token.Value != ")")
                 {

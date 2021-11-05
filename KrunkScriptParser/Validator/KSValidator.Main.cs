@@ -416,6 +416,7 @@ namespace KrunkScriptParser.Validator
 
         private void AddValidationException(string message, TokenLocation startToken, TokenLocation endToken = null, Level level = Level.Error, bool willThrow = false)
         {
+            startToken ??= new TokenLocation(_token);
             endToken ??= startToken;
 
             ValidationException error = new ValidationException(message, startToken, endToken, level);
