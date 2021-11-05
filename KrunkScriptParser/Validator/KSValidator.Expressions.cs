@@ -76,7 +76,7 @@ namespace KrunkScriptParser.Validator
                 ExpressionValue value = new ExpressionValue
                 {
                     Value = ParseValue(depth),
-                    TokenLocation = new TokenLocation(_token)
+                    TokenLocation = new TokenLocation(_token.Prev)
                 };
 
                 value.Type = new KSType(value.Value.Type);
@@ -268,10 +268,11 @@ namespace KrunkScriptParser.Validator
                                 currentType = leftItem.Type; //Uses left type as it either failed validation or they're the same
                             }
 
-
                             LinkedListNode<ExpressionItem> newNode = new LinkedListNode<ExpressionItem>(new ExpressionValue
                             {
-                                Type = currentType
+                                Type = currentType,
+                                TokenLocation = leftItem?.TokenLocation ?? rightItem?.TokenLocation,
+                                EndTokenLocation = rightItem?.TokenLocation ?? leftItem?.TokenLocation
                             });
 
                             LinkedListNode<ExpressionItem> prevNode = currentNode;
@@ -473,14 +474,14 @@ namespace KrunkScriptParser.Validator
             {
                 if(leftType != KSType.Number)
                 {
-                    AddValidationException($"Mismatched type. Expected '{KSType.Number}'. Received '{leftType?.FullType}{op.Operator}'", left.TokenLocation, rightItem.TokenLocation);
+                    AddValidationException($"Mismatched type. Expected '{KSType.Number}'. Received '{leftType?.FullType}{op.Operator}'", left.TokenLocation, rightItem.EndTokenLocation ?? rightItem.TokenLocation);
                 }
             }
             else if (op.IsTernaryCondition)
             {
                 if(leftType != KSType.Bool)
                 {
-                    AddValidationException($"Invalid ternary condition. Expected '{KSType.Bool}'. Received '{leftType?.FullType}'", left.TokenLocation, rightItem.TokenLocation);
+                    AddValidationException($"Invalid ternary condition. Expected '{KSType.Bool}'. Received '{leftType?.FullType}'", left.TokenLocation, rightItem.EndTokenLocation ?? rightItem.TokenLocation);
                 }
             }
             else if (leftType != rightType)
@@ -488,7 +489,7 @@ namespace KrunkScriptParser.Validator
                 //Special condition
                 if (op.Operator != "=" || leftType != KSType.Any)
                 {
-                    AddValidationException($"Mismatched types. Expected '{leftType?.FullType}'. Received '{leftType?.FullType} {op.Operator} {rightType?.FullType}'", left.TokenLocation, rightItem.TokenLocation);
+                    AddValidationException($"Mismatched types. Expected '{leftType?.FullType}'. Received '{leftType?.FullType} {op.Operator} {rightType?.FullType}'", left.TokenLocation, rightItem.EndTokenLocation ?? rightItem.TokenLocation);
 
                     showedError = true;
                 }
@@ -509,7 +510,7 @@ namespace KrunkScriptParser.Validator
                     {
                         string expected = $"'{String.Join("' or '", op.ValidTypes)}'";
 
-                        AddValidationException($"Expected {expected} with operator '{op.Operator}'. Received '{leftType.FullType} {op.Operator} {rightType.FullType}'", left.TokenLocation, rightItem.TokenLocation);
+                        AddValidationException($"Expected {expected} with operator '{op.Operator}'. Received '{leftType.FullType} {op.Operator} {rightType.FullType}'", left.TokenLocation, rightItem.EndTokenLocation ?? rightItem.TokenLocation);
                     }
                 }
             }
