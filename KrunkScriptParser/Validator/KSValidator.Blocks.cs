@@ -334,9 +334,9 @@ namespace KrunkScriptParser.Validator
                         _iterator.Next();
                     }
 
-                    if(block.Condition.Type != KSType.Bool && block.Condition.Type != KSType.Any)
+                    if(block.Condition.Type != KSType.Bool)
                     {
-                        AddValidationException($"if/else if statement conditions require type '{KSType.Bool}' or '{KSType.Any}'. Received '{block.Condition.Type}'", block.Condition.TokenLocation, block.Condition.EndTokenLocation);
+                        AddValidationException($"if/else if statement conditions require type '{KSType.Bool}'. Received '{block.Condition.Type}'", block.Condition.TokenLocation, block.Condition.EndTokenLocation);
                     }
                 }
             }
