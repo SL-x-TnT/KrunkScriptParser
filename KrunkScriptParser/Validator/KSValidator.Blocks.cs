@@ -43,7 +43,13 @@ namespace KrunkScriptParser.Validator
             int conditionalState = int.MaxValue; //0, 1, 2 = if, else if, else
             Token currentToken = _token;
 
-            while(_token.Value != "}")
+            //End of file
+            if (_token == null)
+            {
+                return block;
+            }
+
+            while (_token.Value != "}")
             {
                 TokenLocation lineStart = new TokenLocation(_token);
 
@@ -237,7 +243,7 @@ namespace KrunkScriptParser.Validator
                             }
                             else if (finalExpressionType.ArrayDepth < 0) //Being indexed too far
                             {
-                                AddValidationException($"Array indexed too far for 'remove'. Variable '{variableName.Variable.Name}'", value.TokenLocation, value.EndTokenLocation);
+                                AddValidationException($"Array indexed too far for 'remove'. Found '{variableName.Variable.Name}'", value.TokenLocation, value.EndTokenLocation);
                             }
                             else if (finalExpressionType.ArrayDepth == variableName.Variable.Value.Type.ArrayDepth) //Wasn't indexed at all
                             {

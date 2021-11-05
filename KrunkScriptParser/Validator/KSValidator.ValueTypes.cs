@@ -453,7 +453,8 @@ namespace KrunkScriptParser.Validator
                     variable = new KSVariable
                     {
                         Name = name,
-                        Type = KSType.Any
+                        Type = KSType.Any,
+                        Value = value
                     };
                 }
                 else if (isAction)
@@ -494,15 +495,20 @@ namespace KrunkScriptParser.Validator
                         return null;
                     }
 
+                    KSType newType = new KSType(value.Type);
+
                     //PATCH: Indexes again
                     for (int i = 0; i < depthDecrease; i++)
                     {
-                        TryGetDeclaration(initialToken.Value, out IKSValue asdfadsf);
-                        //NEED TO CREATE A NEW ACTION OBJECT OR FIND A WAY TO CHANGE REFERERENCE
-                        value.Type.DecreaseDepth();
+                        newType.DecreaseDepth();
                     }
 
-                    variable = value as KSVariable;
+                    variable = new KSVariable
+                    {
+                        Name = name,
+                        Type = newType,
+                        Value = value
+                    };
                 }
             }
             else //Globals
