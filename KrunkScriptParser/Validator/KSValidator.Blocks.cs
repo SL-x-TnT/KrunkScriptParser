@@ -86,7 +86,13 @@ namespace KrunkScriptParser.Validator
 
             RemoveScopeLevel();
 
-            _iterator.Next();
+            _iterator.Next(false);
+
+            //End of file
+            if(_token == null)
+            {
+                return block;
+            }
 
             if (blockType != "action" && _token.Type == TokenTypes.Terminator)
             {
@@ -94,6 +100,7 @@ namespace KrunkScriptParser.Validator
 
                 _iterator.Next();
             }
+
             return block;
         }
 

@@ -518,17 +518,16 @@ namespace KrunkScriptParser.Validator
             {
                 _counter = 0;
 
-                if(checkEOF)
-                {
-                    if(_token == null)
-                    {
-                        throw new ValidationException("Unexpected end of file", new TokenLocation(_token), new TokenLocation(_token));
-                    }
-                }
-
+                Token prevToken = _token;
                 _token = _token?.Next;
 
-                if(_token?.Type == TokenTypes.Comment)
+
+                if (checkEOF && _token == null)
+                {
+                    throw new ValidationException("Unexpected end of file", new TokenLocation(prevToken), new TokenLocation(prevToken));
+                }
+
+                if (_token?.Type == TokenTypes.Comment)
                 {
                     return Next();
                 }
