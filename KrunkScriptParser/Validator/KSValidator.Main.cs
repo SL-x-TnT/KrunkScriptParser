@@ -350,7 +350,7 @@ namespace KrunkScriptParser.Validator
                         if (variable.Name.StartsWith(text, StringComparison.OrdinalIgnoreCase))
                         {
                             //Object properties
-                            if (parts.Length > 1)
+                            if (variable.Name == text && parts.Length > 1)
                             {
                                 if(variable.TryReadObject(out KSObject ksObject))
                                 {
@@ -393,7 +393,7 @@ namespace KrunkScriptParser.Validator
 
                                 break;
                             }
-                            else
+                            else if(parts.Length == 1)
                             {
                                 suggestions.Add(new AutoCompleteSuggestion
                                 {
@@ -404,7 +404,7 @@ namespace KrunkScriptParser.Validator
                             }
                         }
                     }
-                    else if(value is KSAction action)
+                    else if(value is KSAction action && parts.Length == 1) //Custom actions, so none will be multiple parts
                     {
                         if (action.Name.StartsWith(text, StringComparison.OrdinalIgnoreCase))
                         {
