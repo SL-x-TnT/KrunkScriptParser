@@ -64,7 +64,8 @@ namespace KrunkScriptLanguageServer
                     Detail = suggestion.Details,
                     Kind = (CompletionItemKind)suggestion.Type,
                     InsertTextFormat = !String.IsNullOrEmpty(suggestion.InsertTextFormat) ? InsertTextFormat.Snippet : InsertTextFormat.PlainText,
-                    InsertText = suggestion.InsertTextFormat
+                    InsertText = suggestion.InsertTextFormat,
+                    Documentation = suggestion.Documentation
                 };
             }), suggestions.Count > 1);
 

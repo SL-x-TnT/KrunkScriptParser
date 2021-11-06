@@ -291,7 +291,6 @@ namespace KrunkScriptParser.Validator
             return variable;
         }
 
-
         #region Utilities
 
         public List<AutoCompleteSuggestion> AutoCompleteSuggestions(string text, int line, int column)
@@ -355,51 +354,40 @@ namespace KrunkScriptParser.Validator
                             {
                                 if(variable.TryReadObject(out KSObject ksObject))
                                 {
-                                    for (int i = 1; i < parts.Length - 1; i++)
-                                    {
-                                        if(String.IsNullOrEmpty(parts[i]))
-                                        {
-                                            ksObject = null;
-
-                                            break;
-                                        }
-
-                                        if(!ksObject.Properties.TryGetValue(parts[i], out IKSValue pValue))
-                                        {
-                                            break;
-                                        }
-
-                                        if(pValue is KSExpression expression)
-                                        {
-                                            //End of values
-                                            if(!expression.TryReadObject(out ksObject))
-                                            {
-                                                break;
-                                            }
-                                        }
-                                        else if (pValue is KSObject tObj)
-                                        {
-                                            ksObject = tObj;
-                                        }
-                                        else
-                                        {
-                                            ksObject = null;
-
-                                            break;
-                                        }
-                                    }
+                                    ksObject = ReadObjectPath(ksObject, parts.Skip(1).ToArray()) as KSObject;
                                 }
 
                                 if (ksObject != null)
                                 {
                                     foreach (KeyValuePair<string, IKSValue> property in ksObject.Properties)
                                     {
-                                        suggestions.Add(new AutoCompleteSuggestion
+                                        if (property.Value is KSAction action)
                                         {
-                                            Text = property.Key,
-                                            Type = SuggestionType.Variable,
-                                            Details = $"{property.Value.Type} {String.Join(".", parts.Take(parts.Length - 1))}.{property.Key}"
-                                        });
+                                            StringBuilder detailBuilder = new StringBuilder($"{action.Type} {action.Name}(");
+                                            detailBuilder.AppendJoin(", ", action.Parameters.Select(x => $"{x.Type} {x.Name}"));
+                                            detailBuilder.Append(")");
+
+                                            StringBuilder formatBuilder = new StringBuilder($"{property.Key}(");
+                                            formatBuilder.AppendJoin(", ", action.Parameters.Select((x, i) => $"${{{i + 1}:{x.Name}}}"));
+                                            formatBuilder.Append(")");
+
+                                            suggestions.Add(new AutoCompleteSuggestion
+                                            {
+                                                Text = property.Key,
+                                                Type = SuggestionType.Method,
+                                                Details = detailBuilder.ToString(),
+                                                InsertTextFormat = formatBuilder.ToString(),
+                                            });
+                                        }
+                                        else
+                                        {
+                                            suggestions.Add(new AutoCompleteSuggestion
+                                            {
+                                                Text = property.Key,
+                                                Type = SuggestionType.Variable,
+                                                Details = $"{property.Value.Type} {String.Join(".", parts.Take(parts.Length - 1))}.{property.Key}"
+                                            });
+                                        }
                                     }
                                 }
 
@@ -443,6 +431,54 @@ namespace KrunkScriptParser.Validator
             }
 
             return suggestions;
+
+            IKSValue ReadObjectPath(KSObject ksObject, string[] path)
+            {
+                bool ended = false;
+
+                for (int i = 0; i < parts.Length - 1; i++)
+                {
+                    if (String.IsNullOrEmpty(parts[i]))
+                    {
+                        ksObject = null;
+
+                        break;
+                    }
+
+                    if (!ksObject.Properties.TryGetValue(parts[i], out IKSValue pValue))
+                    {
+                        if(ended)
+                        {
+                            ksObject = null;
+                        }
+
+                        ended = true;
+
+                        continue;
+                    }
+
+                    if (pValue is KSExpression expression)
+                    {
+                        //End of values
+                        if (!expression.TryReadObject(out ksObject))
+                        {
+                            break;
+                        }
+                    }
+                    else if (pValue is KSObject tObj)
+                    {
+                        ksObject = tObj;
+                    }
+                    else
+                    {
+                        ksObject = null;
+
+                        break;
+                    }
+                }
+
+                return ksObject;
+            }
         }
 
         /// <summary>

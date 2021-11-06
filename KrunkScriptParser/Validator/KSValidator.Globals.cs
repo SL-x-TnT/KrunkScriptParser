@@ -82,13 +82,16 @@ namespace KrunkScriptParser.Validator
 
                     List<KSParameter> parameters = ParseParameters(true);
 
-                    _krunkerGlobalVariables.TryAdd(name, new KSAction
+                    KSAction action = new KSAction
                     {
                         Type = returnType,
                         Parameters = parameters,
                         Name = name,
                         Global = true
-                    });
+                    };
+
+                    UpdateGlobalDeclaration(action);
+                    _krunkerGlobalVariables.TryAdd(name, action);
 
                     _iterator.Next(false);
                 }
@@ -111,12 +114,24 @@ namespace KrunkScriptParser.Validator
         {
             if(value is KSVariable variable)
             {
-                string[] parts = variable.Name.Split('.');
+                AddObjectPathName(variable.Name.Split('.'));
+            }
+            else if (value is KSAction action)
+            {
+                string[] parts = action.Name.Split('.');
 
+                KSObject ksObject = AddObjectPathName(parts.Take(parts.Length - 1).ToArray(), true);
+
+                //Add the last KSAction
+                ksObject.Properties.TryAdd(parts[parts.Length - 1], action);
+            }
+
+            KSObject AddObjectPathName(string[] parts, bool isAction = false)
+            {
                 KSObject ksObject = new KSObject();
 
                 //First value
-                if(!_defaultDeclarations.TryGetValue(parts[0], out IKSValue declaredValue))
+                if (!_defaultDeclarations.TryGetValue(parts[0], out IKSValue declaredValue))
                 {
                     declaredValue = new KSVariable
                     {
@@ -129,6 +144,7 @@ namespace KrunkScriptParser.Validator
                 }
 
                 ksObject = ((KSVariable)declaredValue).Value as KSObject;
+
                 //Remaining
                 for (int i = 1; i < parts.Length - 1; i++)
                 {
@@ -149,14 +165,34 @@ namespace KrunkScriptParser.Validator
 
                 }
 
-                ksObject.Properties.TryAdd(parts[parts.Length - 1], new KSVariable
+                if (isAction && parts.Length > 1)
                 {
-                    Type = value.Type
-                });
-            }
-            else if (value is KSAction action)
-            {
+                    string lastPart = parts[parts.Length - 1];
 
+                    KSObject lastObject = null;
+                    if(!ksObject.Properties.TryGetValue(lastPart, out IKSValue v))
+                    {
+                        v = new KSObject
+                        {
+                            Type = KSType.Object
+                        };
+
+                        ksObject.Properties.TryAdd(lastPart, v);
+                    }
+
+                    lastObject = v as KSObject;
+
+                    return lastObject;
+                }
+                else if(!isAction)
+                {
+                    ksObject.Properties.TryAdd(parts[parts.Length - 1], new KSVariable
+                    {
+                        Type = value.Type
+                    });
+                }
+
+                return ksObject;
             }
         }
 
