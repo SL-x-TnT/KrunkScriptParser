@@ -49,8 +49,14 @@ namespace KrunkScriptParser.Validator
                 return block;
             }
 
-            while (_token.Value != "}")
+            while (_token?.Value != "}")
             {
+                if(_token == null)
+                {
+                    //Throws an "end of file" exception
+                    _iterator.Next();
+                }
+
                 TokenLocation lineStart = new TokenLocation(_token);
 
                 IKSValue line = ParseLine();
@@ -428,13 +434,15 @@ namespace KrunkScriptParser.Validator
                         {
                             AddValidationException($"Missing ';' in '{key}' statement", _token);
                         }
+                        else
+                        {
+                            _iterator.Next();
+                        }
 
                         if(block.Condition.Type != KSType.Bool)
                         {
                             AddValidationException($"Condition in '{key}' statement must return type '{KSType.Bool}'", block.Condition.TokenLocation, block.Condition.EndTokenLocation);
                         }
-
-                        _iterator.Next();
 
                         //Increment (after loop)
                         block.Increment = ParseExpression();

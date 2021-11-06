@@ -26,7 +26,14 @@ namespace KrunkScriptParser.Validator
         private static Dictionary<string, IKSValue> _krunkerGlobalVariables = new Dictionary<string, IKSValue>();
 
         private TokenIterator _iterator;
-        private Token _token => _iterator?.Current;
+        private Token _token
+        {
+            get
+            {
+                return _iterator?.Current;
+            }
+        }
+
         private TokenReader _reader;
 
         //Used for auto complete
@@ -745,6 +752,7 @@ namespace KrunkScriptParser.Validator
                     return _token;
                 }
             }
+            public Token Previous { get; private set; }
 
             private Token _token;
             private int _counter = 0;
@@ -799,13 +807,13 @@ namespace KrunkScriptParser.Validator
             {
                 _counter = 0;
 
-                Token prevToken = _token;
+                Previous = _token ?? Previous;
                 _token = _token?.Next;
 
 
                 if (checkEOF && _token == null)
                 {
-                    throw new ValidationException("Unexpected end of file", new TokenLocation(prevToken), new TokenLocation(prevToken));
+                    throw new ValidationException("Unexpected end of file", new TokenLocation(Previous), new TokenLocation(Previous));
                 }
 
                 if (_token?.Type == TokenTypes.Comment)
