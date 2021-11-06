@@ -27,7 +27,6 @@ namespace KrunkScriptParser.Validator
             //Read file + parse file
             try
             {
-
                 string text = File.ReadAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "globalObjects.krnk"));
 
                 ParseGlobalObjects(text);
@@ -95,13 +94,77 @@ namespace KrunkScriptParser.Validator
                 }
                 else //Property
                 {
-                    _krunkerGlobalVariables.TryAdd(name, new KSVariable
+                    KSVariable variable = new KSVariable
                     {
                         Name = name,
                         Type = returnType
-                    });
+                    };
+
+                    UpdateGlobalDeclaration(variable);
+                    _krunkerGlobalVariables.TryAdd(name, variable);
                 }
             }
         }
+
+        //Too lazy to get the other method working with globals
+        private void UpdateGlobalDeclaration(IKSValue value)
+        {
+            if(value is KSVariable variable)
+            {
+                string[] parts = variable.Name.Split('.');
+
+                KSObject ksObject = new KSObject();
+
+                //First value
+                if(!_defaultDeclarations.TryGetValue(parts[0], out IKSValue declaredValue))
+                {
+                    declaredValue = new KSVariable
+                    {
+                        Type = KSType.Object,
+                        Value = ksObject,
+                        Name = parts[0]
+                    };
+
+                    _defaultDeclarations.TryAdd(parts[0], declaredValue);
+                }
+
+                ksObject = ((KSVariable)declaredValue).Value as KSObject;
+                //Remaining
+                for (int i = 1; i < parts.Length - 1; i++)
+                {
+                    if (!ksObject.Properties.TryGetValue(parts[i], out IKSValue v))
+                    {
+                        KSObject newObj = new KSObject
+                        {
+                            Type = KSType.Object
+                        };
+
+                        ksObject.Properties.TryAdd(parts[i], newObj);
+                        ksObject = newObj;
+                    }
+                    else
+                    {
+                        ksObject = v as KSObject;
+                    }
+
+                }
+
+                ksObject.Properties.TryAdd(parts[parts.Length - 1], new KSVariable
+                {
+                    Type = value.Type
+                });
+            }
+            else if (value is KSAction action)
+            {
+
+            }
+        }
+
+
+        private List<AutoCompleteSuggestion> GlobalSuggestions(string[] parts)
+        {
+            return new List<AutoCompleteSuggestion>();
+        }
+
     }
 }

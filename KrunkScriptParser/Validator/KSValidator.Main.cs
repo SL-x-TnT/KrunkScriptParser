@@ -21,6 +21,8 @@ namespace KrunkScriptParser.Validator
         private LinkedList<KSBlock> _blocks = new LinkedList<KSBlock>();
         private LinkedListNode<KSBlock> _blockNode;
 
+        private static Dictionary<string, IKSValue> _defaultDeclarations = new Dictionary<string, IKSValue>();
+
         private static Dictionary<string, IKSValue> _krunkerGlobalVariables = new Dictionary<string, IKSValue>();
 
         private TokenIterator _iterator;
@@ -29,7 +31,6 @@ namespace KrunkScriptParser.Validator
 
         //Used for auto complete
         internal List<KSBlock> _completionBlocks = new List<KSBlock>();
-        internal static List<KSObject> _globalObjects = new List<KSObject>();
 
         public event EventHandler<ValidationException> OnValidationError;
 
@@ -46,9 +47,11 @@ namespace KrunkScriptParser.Validator
         {
             try
             {
+                InitializeGlobals();
+
                 AddNewScopeLevel(new KSBlock { Keyword = "global", TokenLocation = new TokenLocation(_token) });
 
-                InitializeGlobals();
+
                 ParseTokens();
 
                 //Final global scope
@@ -354,6 +357,13 @@ namespace KrunkScriptParser.Validator
                                 {
                                     for (int i = 1; i < parts.Length - 1; i++)
                                     {
+                                        if(String.IsNullOrEmpty(parts[i]))
+                                        {
+                                            ksObject = null;
+
+                                            break;
+                                        }
+
                                         if(!ksObject.Properties.TryGetValue(parts[i], out IKSValue pValue))
                                         {
                                             break;
@@ -361,24 +371,36 @@ namespace KrunkScriptParser.Validator
 
                                         if(pValue is KSExpression expression)
                                         {
-                                            //Something broke?
+                                            //End of values
                                             if(!expression.TryReadObject(out ksObject))
                                             {
                                                 break;
                                             }
                                         }
+                                        else if (pValue is KSObject tObj)
+                                        {
+                                            ksObject = tObj;
+                                        }
+                                        else
+                                        {
+                                            ksObject = null;
+
+                                            break;
+                                        }
                                     }
                                 }
 
-
-                                foreach (KeyValuePair<string, IKSValue> property in ksObject.Properties)
+                                if (ksObject != null)
                                 {
-                                    suggestions.Add(new AutoCompleteSuggestion
+                                    foreach (KeyValuePair<string, IKSValue> property in ksObject.Properties)
                                     {
-                                        Text = property.Key,
-                                        Type = SuggestionType.Variable,
-                                        Details = $"any {String.Join(".", parts.Take(parts.Length - 1))}.{property.Key}"
-                                    });
+                                        suggestions.Add(new AutoCompleteSuggestion
+                                        {
+                                            Text = property.Key,
+                                            Type = SuggestionType.Variable,
+                                            Details = $"{property.Value.Type} {String.Join(".", parts.Take(parts.Length - 1))}.{property.Key}"
+                                        });
+                                    }
                                 }
 
                                 break;
@@ -421,11 +443,6 @@ namespace KrunkScriptParser.Validator
             }
 
             return suggestions;
-        }
-
-        private List<AutoCompleteSuggestion> GlobalSuggestions(string[] parts)
-        {
-            return new List<AutoCompleteSuggestion>();
         }
 
         /// <summary>
@@ -580,6 +597,11 @@ namespace KrunkScriptParser.Validator
         private void AddNewScopeLevel(KSBlock block)
         {
             var declarations = new Dictionary<string, IKSValue>();
+
+            if(block.Keyword == "global")
+            {
+                declarations = new Dictionary<string, IKSValue>(_defaultDeclarations);
+            }
 
             _completionBlocks.Add(block);
             block.Declarations = declarations;

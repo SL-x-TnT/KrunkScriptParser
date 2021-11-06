@@ -25,6 +25,13 @@ namespace KrunkScriptParser.Models.Blocks
         {
             ksObject = null;
 
+            if(Value is KSObject tObj)
+            {
+                ksObject = tObj;
+
+                return true;
+            }
+
             if(Value is KSExpression ksExpression && ksExpression.TryReadObject(out ksObject))
             {
                 return true;

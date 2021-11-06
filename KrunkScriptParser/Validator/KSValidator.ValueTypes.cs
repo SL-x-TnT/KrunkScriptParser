@@ -369,7 +369,7 @@ namespace KrunkScriptParser.Validator
                 }
                 else if (_token.Value == "(")
                 {
-                    if (TryGetDeclaration(initialToken.Value, out IKSValue ksValue) && ksValue is not KSAction)
+                    if (!isObj && initialToken.Type != TokenTypes.GlobalObject && TryGetDeclaration(initialToken.Value, out IKSValue ksValue) && ksValue is not KSAction)
                     {
                         //Not an action, so back 1 step
                         _iterator.Prev();
@@ -422,9 +422,9 @@ namespace KrunkScriptParser.Validator
                 if (isAction && isObj)
                 {
                     //Maybe later add a "global" to variable object types
-                    AddValidationException($"Action properties on objects currently not supported. Method: '{name}'", initialToken, _token, level: Level.Info);
+                    //AddValidationException($"Action properties on objects currently not supported. Method: '{name}'", initialToken, _token, level: Level.Info);
 
-                    //Parse the arguments to get them out of the way
+                    //Parse the arguments to get them out of the way. Don't currently have support to know the parameters
                     List<KSExpression> arguments = ParseArguments();
                 }
                 else if (isObj)
