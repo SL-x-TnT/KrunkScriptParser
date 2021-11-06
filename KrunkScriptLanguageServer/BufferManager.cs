@@ -1,30 +1,28 @@
-﻿
+﻿using KrunkScriptParser.Validator;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace KrunkScriptLanguageServer
 {
     class BufferManager
     {
-        private ConcurrentDictionary<string, StringBuilder> _buffers = new ConcurrentDictionary<string, StringBuilder>();
+        private ConcurrentDictionary<string, BufferData> _buffers = new ConcurrentDictionary<string, BufferData>();
 
-        public void UpdateBuffer(string documentPath, StringBuilder buffer)
+        public void UpdateBuffer(string documentPath, BufferData data)
         {
-            _buffers.AddOrUpdate(documentPath, buffer, (k, v) => buffer);
+            _buffers.AddOrUpdate(documentPath, data, (k, v) => data);
         }
 
-        public StringBuilder GetBuffer(string documentPath)
+        public BufferData GetBuffer(string documentPath)
         {
-            return _buffers.TryGetValue(documentPath, out var buffer) ? buffer : null;
+            return _buffers.TryGetValue(documentPath, out BufferData buffer) ? buffer : null;
         }
 
         public void RemoveBuffer(string documentPath)
         {
-            _buffers.TryRemove(documentPath, out StringBuilder _);
+            _buffers.TryRemove(documentPath, out BufferData a);
         }
     }
 }

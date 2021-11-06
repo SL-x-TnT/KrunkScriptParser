@@ -1,6 +1,7 @@
 ﻿using KrunkScriptParser.Helpers;
 using KrunkScriptParser.Models;
 using KrunkScriptParser.Models.Blocks;
+using KrunkScriptParser.Models.Expressions;
 using KrunkScriptParser.Models.Tokens;
 using System;
 using System.Collections.Generic;
@@ -20,12 +21,15 @@ namespace KrunkScriptParser.Validator
         private LinkedList<KSBlock> _blocks = new LinkedList<KSBlock>();
         private LinkedListNode<KSBlock> _blockNode;
 
-        private Dictionary<string, IKSValue> _krunkerGlobalVariables = new Dictionary<string, IKSValue>();
+        private static Dictionary<string, IKSValue> _krunkerGlobalVariables = new Dictionary<string, IKSValue>();
 
         private TokenIterator _iterator;
         private Token _token => _iterator?.Current;
-
         private TokenReader _reader;
+
+        //Used for auto complete
+        internal List<KSBlock> _completionBlocks = new List<KSBlock>();
+        internal static List<KSObject> _globalObjects = new List<KSObject>();
 
         public event EventHandler<ValidationException> OnValidationError;
 
@@ -42,8 +46,13 @@ namespace KrunkScriptParser.Validator
         {
             try
             {
+                AddNewScopeLevel(new KSBlock { Keyword = "global", TokenLocation = new TokenLocation(_token) });
+
                 InitializeGlobals();
                 ParseTokens();
+
+                //Final global scope
+                RemoveScopeLevel();
 
                 return true;
             }
@@ -67,13 +76,6 @@ namespace KrunkScriptParser.Validator
             InitializeTokens();
 
             SkipComments();
-
-            //Variables
-            _declarationNode = new LinkedListNode<Dictionary<string, IKSValue>>(new Dictionary<string, IKSValue>());
-            _declarations.AddFirst(_declarationNode);
-
-            //Blocks to determine whether continue/break statements are valid
-            AddNewScopeLevel(new KSBlock { Keyword = "global" });
 
             while (_token != null)
             {
@@ -131,9 +133,6 @@ namespace KrunkScriptParser.Validator
                     break;
                 }
             }
-
-            //Final global scope
-            RemoveScopeLevel();
         }
 
         /// <summary>
@@ -289,7 +288,145 @@ namespace KrunkScriptParser.Validator
             return variable;
         }
 
+
         #region Utilities
+
+        public List<AutoCompleteSuggestion> AutoCompleteSuggestions(string text, int line, int column)
+        {
+            text = text.Trim();
+
+            //Assume is a variable declaration
+            if(text.Contains(" "))
+            {
+                return new List<AutoCompleteSuggestion>();
+            }
+
+            //Values are 0 indexed
+            line++;
+            column++;
+
+            KSBlock block = null;
+
+            //Get block
+            for (int i = _completionBlocks.Count - 2; i >= 0; i--)
+            {
+                block = _completionBlocks[i];
+
+                if((block.TokenLocation.Line < line ) || (block.TokenLocation.Line == line && block.TokenLocation.Column >= column))
+                {
+                    block = _completionBlocks[i + 1];
+
+                    break;
+                }
+            }
+
+            if(block == null)
+            {
+                return new List<AutoCompleteSuggestion>();
+            }
+
+            List<AutoCompleteSuggestion> suggestions = new List<AutoCompleteSuggestion>();
+
+            string[] parts = text.Split('.');
+
+            if (parts.Length == 0 || String.IsNullOrEmpty(parts[0]))
+            {
+                return suggestions;
+            }
+
+            text = parts.First();
+
+            //Handles global variables (GAME, SCENE, UTILS, MATH, etc)
+            suggestions.AddRange(GlobalSuggestions(parts));
+
+            while(block != null)
+            {
+                foreach(IKSValue value in block.Declarations.Values)
+                {
+                    if(value is KSVariable variable)
+                    {
+                        if (variable.Name.StartsWith(text, StringComparison.OrdinalIgnoreCase))
+                        {
+                            //Object properties
+                            if (parts.Length > 1)
+                            {
+                                if(variable.TryReadObject(out KSObject ksObject))
+                                {
+                                    for (int i = 1; i < parts.Length - 1; i++)
+                                    {
+                                        if(!ksObject.Properties.TryGetValue(parts[i], out IKSValue pValue))
+                                        {
+                                            break;
+                                        }
+
+                                        if(pValue is KSExpression expression)
+                                        {
+                                            //Something broke?
+                                            if(!expression.TryReadObject(out ksObject))
+                                            {
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+
+
+                                foreach (KeyValuePair<string, IKSValue> property in ksObject.Properties)
+                                {
+                                    suggestions.Add(new AutoCompleteSuggestion
+                                    {
+                                        Text = property.Key,
+                                        Type = SuggestionType.Variable,
+                                        Details = $"any {String.Join(".", parts.Take(parts.Length - 1))}.{property.Key}"
+                                    });
+                                }
+
+                                break;
+                            }
+                            else
+                            {
+                                suggestions.Add(new AutoCompleteSuggestion
+                                {
+                                    Text = variable.Name,
+                                    Type = SuggestionType.Variable,
+                                    Details = $"{variable.Type} {variable.Name}"
+                                });
+                            }
+                        }
+                    }
+                    else if(value is KSAction action)
+                    {
+                        if (action.Name.StartsWith(text, StringComparison.OrdinalIgnoreCase))
+                        {
+                            StringBuilder detailBuilder = new StringBuilder($"{action.Type} {action.Name}(");
+                            detailBuilder.AppendJoin(", ", action.Parameters.Select(x => $"{x.Type} {x.Name}"));
+                            detailBuilder.Append(")");
+
+                            StringBuilder formatBuilder = new StringBuilder($"{action.Name}(");
+                            formatBuilder.AppendJoin(", ", action.Parameters.Select((x, i) => $"${{{i + 1}:{x.Name}}}"));
+                            formatBuilder.Append(")");
+
+                            suggestions.Add(new AutoCompleteSuggestion
+                            {
+                                Text = action.Name,
+                                Type = SuggestionType.Method,
+                                Details = detailBuilder.ToString(),
+                                InsertTextFormat = formatBuilder.ToString()
+                            });
+                        }
+                    }
+                }
+
+                block = block.ParentBlock;
+            }
+
+            return suggestions;
+        }
+
+        private List<AutoCompleteSuggestion> GlobalSuggestions(string[] parts)
+        {
+            return new List<AutoCompleteSuggestion>();
+        }
 
         /// <summary>
         /// Manually skip comments. Comments are automatically skipped with _iterator.Next()
@@ -341,6 +478,64 @@ namespace KrunkScriptParser.Validator
             }
         }
 
+        private void UpdateDeclaration(IKSValue value)
+        {
+            if(value is KSVariable variable)
+            {
+                string[] parts = variable.Name.Split('.');
+
+                if(!TryGetDeclaration(parts[0], out IKSValue declaration))
+                {
+                    return;
+                }
+
+                if (declaration.Type != KSType.Object)
+                {
+                    return;
+                }
+
+                if(declaration is KSVariable ksVariable && ksVariable.TryReadObject(out KSObject ksObject))
+                {
+                    for(int i = 1; i < parts.Length; i++)
+                    {
+                        string property = parts[i];
+
+                        //Slow, but lazy
+                        if(property.Contains("[") || property.Contains("]"))
+                        {
+                            break;
+                        }
+
+                        if (!ksObject.Properties.TryGetValue(parts[i], out IKSValue v))
+                        {
+                            KSObject newObj = new KSObject
+                            {
+                                Type = KSType.Any
+                            };
+
+                            ksObject.Properties.TryAdd(parts[i], newObj);
+                            ksObject = newObj;
+                        }
+                        else
+                        {
+                            if(v is KSExpression expression)
+                            {
+                                expression.TryReadObject(out ksObject);
+                            }
+                            else if (v is KSObject obj)
+                            {
+                                ksObject = obj;
+                            }
+                        }
+                    }
+                }
+            }
+            else if (value is KSAction action) //Likely will only be global values
+            {
+
+            }
+        }
+
         /// <summary>
         /// Attempts to find a declared action/variable starting from the current block level
         /// </summary>
@@ -384,7 +579,13 @@ namespace KrunkScriptParser.Validator
         /// </summary>
         private void AddNewScopeLevel(KSBlock block)
         {
-            _declarationNode = new LinkedListNode<Dictionary<string, IKSValue>>(new Dictionary<string, IKSValue>());
+            var declarations = new Dictionary<string, IKSValue>();
+
+            _completionBlocks.Add(block);
+            block.Declarations = declarations;
+            block.ParentBlock = _blockNode?.Value;
+
+            _declarationNode = new LinkedListNode<Dictionary<string, IKSValue>>(declarations);
             _declarations.AddLast(_declarationNode);
 
             _blockNode = new LinkedListNode<KSBlock>(block);
@@ -397,6 +598,30 @@ namespace KrunkScriptParser.Validator
         private void RemoveScopeLevel()
         {
             //Add info warning for declared variables that weren't used
+            foreach(KeyValuePair<string, IKSValue> declaration in _declarationNode.Value)
+            {
+                if (declaration.Value is KSParameter parameter && parameter.IsHookParameter)
+                {
+                    continue;
+                }
+
+                if (declaration.Value is KSVariable variable)
+                {
+                    if(!variable.WasCalled)
+                    {
+                        AddValidationException($"Variable '{variable.Name}' was declared and never used", variable.TokenLocation, level: Level.Info);
+                    }
+                }
+                else if(declaration.Value is KSAction action && !action.IsHook)
+                {
+                    if(!action.WasCalled)
+                    {
+                        AddValidationException($"Action '{action.Name}' was declared and never called", action.TokenLocation, level: Level.Info);
+                    }
+                }
+            }
+
+
             _declarations.RemoveLast();
             _declarationNode = _declarations.Last;
 

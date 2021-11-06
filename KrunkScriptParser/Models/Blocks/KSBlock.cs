@@ -14,6 +14,10 @@ namespace KrunkScriptParser.Models.Blocks
         public TokenLocation TokenLocation { get; set; }
         public TokenLocation TokenLocationEnd => Lines.LastOrDefault()?.TokenLocation;
 
+        //Used for auto completions
+        internal Dictionary<string, IKSValue> Declarations { get; set; } = new Dictionary<string, IKSValue>();
+        internal KSBlock ParentBlock { get; set; }
+
         public KSType Type { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         public IEnumerable<KSStatement> GetReturnStatements()

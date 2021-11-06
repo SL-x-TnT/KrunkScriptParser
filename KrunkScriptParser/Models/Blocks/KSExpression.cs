@@ -18,6 +18,25 @@ namespace KrunkScriptParser.Models.Blocks
         public bool HasPostfix { get; set; }
         public new TokenLocation EndTokenLocation => Items.LastOrDefault()?.TokenLocation;
 
+        public bool TryReadObject(out KSObject ksObject)
+        {
+            ksObject = null;
+
+            if(Items.Count != 1)
+            {
+                return false;
+            }
+
+            if(Items.FirstOrDefault() is ExpressionValue expressionValue && expressionValue.Value is KSObject obj)
+            {
+                ksObject = obj;
+
+                return true;
+            }
+
+            return false;
+        }
+
         public KSExpression()
         {
             Priority = MaxPriority;

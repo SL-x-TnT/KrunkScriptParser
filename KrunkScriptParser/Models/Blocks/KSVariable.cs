@@ -21,6 +21,18 @@ namespace KrunkScriptParser.Models.Blocks
         {
         }
 
+        public bool TryReadObject(out KSObject ksObject)
+        {
+            ksObject = null;
+
+            if(Value is KSExpression ksExpression && ksExpression.TryReadObject(out ksObject))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
         public object Clone()
         {
             return new KSVariable

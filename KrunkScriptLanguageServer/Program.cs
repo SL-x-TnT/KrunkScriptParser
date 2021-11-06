@@ -27,6 +27,7 @@ namespace KrunkScriptLanguageServer
                     .WithMinimumLogLevel(LogLevel.Trace)
                     .WithServices(ConfigureServices)
                     .WithHandler<KrnkDocumentSyncHandler>()
+                    .WithHandler<CompletionHandler>()
                 );
              
             await server.WaitForExit;

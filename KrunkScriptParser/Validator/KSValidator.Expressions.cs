@@ -279,7 +279,7 @@ namespace KrunkScriptParser.Validator
                             {
                                 Type = currentType,
                                 TokenLocation = leftItem?.TokenLocation ?? rightItem?.TokenLocation,
-                                EndTokenLocation = rightItem?.TokenLocation ?? leftItem?.TokenLocation
+                                EndTokenLocation = rightItem?.EndTokenLocation ?? leftItem?.EndTokenLocation
                             });
 
                             LinkedListNode<ExpressionItem> prevNode = currentNode;

@@ -11,6 +11,7 @@ namespace KrunkScriptParser.Models.Blocks
     public class KSAction : IKSValue
     {
         public string Name { get; set; }
+        public bool IsHook { get; set; }
         public KSType Type { get; set; } = KSType.Void;
         public bool Global { get; set; } //Global actions can accept any parameter type
         public List<KSParameter> Parameters { get; set; } = new List<KSParameter>();

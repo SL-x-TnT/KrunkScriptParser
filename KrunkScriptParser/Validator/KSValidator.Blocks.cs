@@ -12,7 +12,7 @@ namespace KrunkScriptParser.Validator
 {
     public partial class KSValidator
     {
-        private KSBlock ParseBlock(string blockType, IEnumerable<IKSValue> variables = null)
+        private KSBlock ParseBlock(string blockType, KSAction action = null)
         {
             KSBlock block = new KSBlock
             {
@@ -32,9 +32,9 @@ namespace KrunkScriptParser.Validator
             AddNewScopeLevel(block);
 
             //Add variables created in parameter/for statement
-            if (variables != null)
+            if (action != null)
             {
-                foreach (IKSValue v in variables)
+                foreach (KSParameter v in action.Parameters)
                 {
                     AddDeclaration(v);
                 }
@@ -211,8 +211,20 @@ namespace KrunkScriptParser.Validator
                 }
 
                 //Expression parsing includes assignment operators + methods
-                ParseExpression();
+                KSExpression expression = ParseExpression();
 
+                //Update object properties for autocomplete purposes
+                if(expression.Items.Count >= 2)
+                {
+                    if(expression.Items[0] is ExpressionValue expressionValue && expression.Items[1] is ExpressionOperator expressionOp)
+                    {
+                        if(expressionOp.IsAssignment && expressionValue.Type == KSType.Any && expressionValue.Value is KSVariableName variableName)
+                        {
+                            //Grab value and add it to the declaration
+                            UpdateDeclaration(variableName.Variable);
+                        }
+                    }
+                }
             }
             else if(_token.Type == TokenTypes.GlobalObject) //Could probably throw this in there ^
             {

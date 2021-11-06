@@ -97,9 +97,9 @@ namespace KrunkScriptParser.Helpers
         public List<Token> ReadAllTokens()
         {
             List<Token> tokens = new List<Token>();
-
-            Token currentToken = null;
             Token prevToken = null;
+
+            Token currentToken;
 
             do
             {

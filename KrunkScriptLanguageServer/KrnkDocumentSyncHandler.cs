@@ -8,6 +8,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server.Capabilities;
 using Serilog;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -46,6 +47,12 @@ namespace KrunkScriptLanguageServer
 
             validator.Validate();
 
+            _bufferManager.UpdateBuffer(uri.ToString(), new BufferData
+            {
+                Buffer = text,
+                Validator = validator
+            });
+
             ImmutableArray<Diagnostic>.Builder diagnostics = ImmutableArray<Diagnostic>.Empty.ToBuilder();
 
             foreach (ValidationException error in validator.ValidationExceptions)
@@ -81,7 +88,7 @@ namespace KrunkScriptLanguageServer
             return new TextDocumentChangeRegistrationOptions()
             {
                 DocumentSelector = _documentSelector,
-                SyncKind = TextDocumentSyncKind.None
+                SyncKind = Change
             };
         }
 
@@ -92,11 +99,13 @@ namespace KrunkScriptLanguageServer
 
         public Task<Unit> Handle(DidChangeTextDocumentParams request, CancellationToken cancellationToken)
         {
-            /*
-            string text = request.ContentChanges.FirstOrDefault()?.Text;
+            BufferData data = _bufferManager.GetBuffer(request.TextDocument.Uri.ToString());
 
-            ValidateText(request.TextDocument.Uri, text);
-            */
+            if (data != null)
+            {
+                //Change for incremental updates
+                data.Buffer = request.ContentChanges.FirstOrDefault().Text;
+            };
 
             return Unit.Task;
         }
@@ -110,6 +119,8 @@ namespace KrunkScriptLanguageServer
 
         public Task<Unit> Handle(DidCloseTextDocumentParams request, CancellationToken cancellationToken)
         {
+            _bufferManager.RemoveBuffer(request.TextDocument.Uri.ToString());
+
             return Unit.Task;
         }
 

@@ -11,5 +11,6 @@ namespace KrunkScriptParser.Models.Blocks
     {
         public bool MultiProp { get; set; }
         public bool Optional { get; set; }
+        public bool IsHookParameter { get; set; }
     }
 }

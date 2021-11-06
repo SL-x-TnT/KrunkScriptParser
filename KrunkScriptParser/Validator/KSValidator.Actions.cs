@@ -22,6 +22,7 @@ namespace KrunkScriptParser.Validator
             {
                 //Need to verify it's a hook
                 _iterator.Next();
+                action.IsHook = true;
             }
 
             //Has a return type
@@ -46,6 +47,8 @@ namespace KrunkScriptParser.Validator
             else
             {
                 action.Name = _token.Value;
+                action.TokenLocation = new TokenLocation(_token);
+
                 _iterator.Next();
             }
 
@@ -62,6 +65,14 @@ namespace KrunkScriptParser.Validator
 
             action.Parameters = ParseParameters();
 
+            if(action.IsHook)
+            {
+                foreach(KSParameter parameter in action.Parameters)
+                {
+                    parameter.IsHookParameter = true;
+                }
+            }
+
             if(_token.Value != ")")
             {
                 bool willThrow = _token.Value != "{";
@@ -73,7 +84,7 @@ namespace KrunkScriptParser.Validator
                 _iterator.Next();
             }
 
-            action.Block = ParseBlock("action", action.Parameters.Cast<IKSValue>());
+            action.Block = ParseBlock("action", action);
 
             if(action.Type != KSType.Void && !action.Block.Lines.Any(x => x is KSStatement statement && statement.IsReturn))
             {
