@@ -219,7 +219,7 @@ namespace KrunkScriptParser.Validator
                 //Expression parsing includes assignment operators + methods
                 KSExpression expression = ParseExpression();
 
-                if(!expression.HasAssignment && expression.Type != KSType.Void)
+                if(!expression.HasAssignment && expression.Type != KSType.Void && expression.Type != KSType.Unknown)
                 {
                     AddValidationException($"Expected an assignment with type '{expression.Type}'", expression.TokenLocation, expression.EndTokenLocation);
                 }

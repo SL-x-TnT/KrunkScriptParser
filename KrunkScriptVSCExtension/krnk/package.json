@@ -2,7 +2,7 @@
   "name": "krnk",
   "displayName": "KrunkScript-Validator",
   "description": "A syntax validator for KrunkScript",
-  "version": "0.2.0",
+  "version": "0.2.3",
   "publisher": "SLxTnT",
   "engines": {
     "vscode": "^1.61.0"

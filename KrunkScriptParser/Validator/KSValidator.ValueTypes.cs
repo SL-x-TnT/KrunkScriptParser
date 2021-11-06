@@ -426,38 +426,21 @@ namespace KrunkScriptParser.Validator
 
                     //Parse the arguments to get them out of the way. Don't currently have support to know the parameters
                     List<KSExpression> arguments = ParseArguments();
+
+                    IKSValue value = VerifyIsObject(initialToken.Value);
+
+                    if (value == null)
+                    {
+                        return null;
+                    }
                 }
                 else if (isObj)
                 {
-                    if (!TryGetDeclaration(initialToken.Value, out IKSValue value))
+                    IKSValue value = VerifyIsObject(initialToken.Value);
+
+                    if(value == null)
                     {
-                        AddValidationException($"Variable '{initialToken.Value}' not defined in this scope", initialToken);
-
-                        //Attempt to fix
-                        //_iterator.SkipUntil(new HashSet<string> { ";", ",", "}" });
-
                         return null;
-                    }
-
-                    //PATCH: Checking to verify the type is an obj
-                    if (value is KSVariable variableName)
-                    {
-                        KSType tempType = new KSType(variableName.Type);
-
-                        for (int i = 0; i < depthDecrease; i++)
-                        {
-                            tempType.DecreaseDepth();
-                        }
-
-                        if (tempType != KSType.Object)
-                        {
-                            AddValidationException($"Property member access '.' requires type '{KSType.Object}'. Received '{tempType}' for variable '{variableName.Name}'", initialToken, _token);
-                        }
-
-                        if(tempType.ArrayDepth < 0)
-                        {
-                            AddValidationException($"Type '{tempType}' can not be indexed", initialToken, _token);
-                        }
                     }
 
                     variable = new KSVariable
@@ -546,6 +529,44 @@ namespace KrunkScriptParser.Validator
             }
 
             return variable;
+
+            IKSValue VerifyIsObject(string name)
+            {
+                if (!TryGetDeclaration(name, out IKSValue value))
+                {
+                    AddValidationException($"Variable '{name}' not defined in this scope", initialToken);
+
+                    //Attempt to fix
+                    //_iterator.SkipUntil(new HashSet<string> { ";", ",", "}" });
+
+                    return null;
+                }
+
+                //PATCH: Checking to verify the type is an obj
+                if (value is KSVariable variableName)
+                {
+                    KSType tempType = new KSType(variableName.Type);
+
+                    for (int i = 0; i < depthDecrease; i++)
+                    {
+                        tempType.DecreaseDepth();
+                    }
+
+                    if (tempType != KSType.Object)
+                    {
+                        AddValidationException($"Property member access '.' requires type '{KSType.Object}'. Received '{tempType}' for variable '{variableName.Name}'", initialToken, _token);
+                    }
+
+                    if (tempType.ArrayDepth < 0)
+                    {
+                        AddValidationException($"Type '{tempType}' can not be indexed", initialToken, _token);
+                    }
+
+                    return variableName;
+                }
+
+                return null;
+            }
         }
     }
 }
