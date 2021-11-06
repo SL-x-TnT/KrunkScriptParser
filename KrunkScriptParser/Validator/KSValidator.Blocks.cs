@@ -375,7 +375,7 @@ namespace KrunkScriptParser.Validator
             };
 
             //PATCH: Dealing with if statement assignments in their (). A new level won't hurt anything
-            AddNewScopeLevel(new KSBlock { Keyword = key });
+            AddNewScopeLevel(new KSBlock { Keyword = key, TokenLocation = new TokenLocation(_token) });
 
             try
             {
