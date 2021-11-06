@@ -87,7 +87,8 @@ namespace KrunkScriptParser.Validator
                         Type = returnType,
                         Parameters = parameters,
                         Name = name,
-                        Global = true
+                        Global = true,
+                        WasCalled = true
                     };
 
                     UpdateGlobalDeclaration(action);
@@ -137,7 +138,8 @@ namespace KrunkScriptParser.Validator
                     {
                         Type = KSType.Object,
                         Value = ksObject,
-                        Name = parts[0]
+                        Name = parts[0],
+                        WasCalled = true
                     };
 
                     _defaultDeclarations.TryAdd(parts[0], declaredValue);
@@ -188,19 +190,13 @@ namespace KrunkScriptParser.Validator
                 {
                     ksObject.Properties.TryAdd(parts[parts.Length - 1], new KSVariable
                     {
-                        Type = value.Type
+                        Type = value.Type,
+                        WasCalled = true
                     });
                 }
 
                 return ksObject;
             }
         }
-
-
-        private List<AutoCompleteSuggestion> GlobalSuggestions(string[] parts)
-        {
-            return new List<AutoCompleteSuggestion>();
-        }
-
     }
 }

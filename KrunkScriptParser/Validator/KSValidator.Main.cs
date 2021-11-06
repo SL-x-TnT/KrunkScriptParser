@@ -338,9 +338,6 @@ namespace KrunkScriptParser.Validator
 
             text = parts.First();
 
-            //Handles global variables (GAME, SCENE, UTILS, MATH, etc)
-            suggestions.AddRange(GlobalSuggestions(parts));
-
             while(block != null)
             {
                 foreach(IKSValue value in block.Declarations.Values)
