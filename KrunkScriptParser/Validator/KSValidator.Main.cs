@@ -502,7 +502,6 @@ namespace KrunkScriptParser.Validator
         private void AddDeclaration(IKSValue variable)
         {
             string name = String.Empty;
-            bool alreadyDeclared = false;
 
             if(variable is KSAction action)
             {
@@ -512,7 +511,11 @@ namespace KrunkScriptParser.Validator
             {
                 name = v.Name;
 
-                alreadyDeclared = TryGetDeclaration(name, out IKSValue _);
+                //Variable name is declared higher up, but that's valid
+                if (TryGetDeclaration(name, out IKSValue declaredVariable))
+                {
+                    AddValidationException($"Variable '{name}' hiding previously declared variable ({declaredVariable.TokenLocation.Line}:{declaredVariable.TokenLocation.Column})", variable.TokenLocation, level: Level.Warning);
+                }
             }
             else if (variable is KSParameter parameter)
             {
@@ -528,11 +531,6 @@ namespace KrunkScriptParser.Validator
                 return;
             }
 
-            //Variable name is declared higher up, but that's valid
-            if(alreadyDeclared)
-            {
-                AddValidationException($"Variable '{name}' hiding previously declared variable", variable.TokenLocation, level: Level.Warning);
-            }
         }
 
         private void UpdateDeclaration(IKSValue value)

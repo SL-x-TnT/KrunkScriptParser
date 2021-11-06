@@ -31,7 +31,7 @@ namespace KrunkScriptParser.Validator
             }*/
 
             //Read remaining items
-            while(_token.Value != ")" && _token.Type != TokenTypes.Terminator)
+            while(_token.Value != ")" && _token.Value != "," && _token.Type != TokenTypes.Terminator)
             {
                 ReadConversions();
 

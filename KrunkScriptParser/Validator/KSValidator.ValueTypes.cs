@@ -78,12 +78,13 @@ namespace KrunkScriptParser.Validator
                 {
                     Type = new KSType(variable?.Type),
                     Variable = variable as KSVariable,
+                    Action = variable as KSAction,
                     TokenLocation = variable?.TokenLocation
                 };
 
                 Token nextToken = _iterator.PeekNext();
 
-                if(nextToken.Value == ".")
+                if(nextToken.Value == "." && variableName.Action?.Global == false)
                 {
                     AddValidationException($"Invalid member property access. Assign method result to a new variable first", nextToken);
 

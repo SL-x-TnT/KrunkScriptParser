@@ -221,7 +221,24 @@ namespace KrunkScriptParser.Validator
 
                 if(!expression.HasAssignment && expression.Type != KSType.Void && expression.Type != KSType.Unknown)
                 {
-                    AddValidationException($"Expected an assignment with type '{expression.Type}'", expression.TokenLocation, expression.EndTokenLocation);
+                    bool isValid = false;
+
+                    if(expression.Items.Count == 1 && expression.Items[0] is ExpressionValue expressionValue && 
+                        expressionValue.Value is KSVariableName variableName && variableName.Action != null)
+                    {
+                        isValid = true;
+                    }
+
+                    if(expression.Items.Count == 2 && expression.Items[1] is ExpressionOperator op && op.IsPostfix)
+                    {
+                        isValid = true;
+                    }
+
+
+                    if (!isValid)
+                    {
+                        AddValidationException($"Expected an assignment with type '{expression.Type}'", expression.TokenLocation, expression.EndTokenLocation);
+                    }
                 }
 
                 //Update object properties for autocomplete purposes
