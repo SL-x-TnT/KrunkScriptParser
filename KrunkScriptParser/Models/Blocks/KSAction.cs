@@ -17,7 +17,11 @@ namespace KrunkScriptParser.Models.Blocks
         public List<KSParameter> Parameters { get; set; } = new List<KSParameter>();
         public KSBlock Block { get; set; }
         public bool HasAReturn { get; set; }
-        public bool WasCalled { get; set; }
+        public bool WasCalled => CallInformation != null;
+
+        //Leaving for now, but possibly change to a list of call locations
+        public CallInfo CallInformation { get; set; }
+
         public TokenLocation TokenLocation { get; set; }
 
         public IEnumerable<KSStatement> GetInvalidReturns()

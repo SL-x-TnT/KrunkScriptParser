@@ -13,7 +13,7 @@ namespace KrunkScriptParser.Models.Expressions
         private static Dictionary<string, HashSet<KSType>> _assignmentOperators = new Dictionary<string, HashSet<KSType>>
         {
             { "+", new HashSet<KSType>{KSType.String, KSType.Number } },
-            {"-", new HashSet<KSType>{KSType.String, KSType.Number } },
+            {"-", new HashSet<KSType>{ KSType.Number } },
             {"**", new HashSet<KSType>{ KSType.Number } },
             {"*", new HashSet<KSType>{ KSType.Number } },
             {"/", new HashSet<KSType>{KSType.Number } } ,

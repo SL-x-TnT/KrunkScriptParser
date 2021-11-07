@@ -37,6 +37,7 @@ namespace KrunkScriptParser.Validator
 
         private TokenReader _reader;
         private ValidatorPass _pass = ValidatorPass.Declarations;
+        private bool _hookDeclared = false;
 
         //Used for auto complete
         internal List<KSBlock> _completionBlocks = new List<KSBlock>();
@@ -70,6 +71,8 @@ namespace KrunkScriptParser.Validator
 
                     ParseTokens();
                 }
+
+                //Validate calls
 
                 //Final global scope
                 RemoveScopeLevel();
@@ -292,7 +295,7 @@ namespace KrunkScriptParser.Validator
             }
             else
             {
-                _iterator.Next();
+                _iterator.Next(false);
             }
 
             return variable;
@@ -505,7 +508,17 @@ namespace KrunkScriptParser.Validator
 
             if(variable is KSAction action)
             {
+                if(action.IsHook)
+                {
+                    _hookDeclared = true;
+                }
+
                 name = action.Name;
+
+                if (!action.IsHook && _hookDeclared && _pass == ValidatorPass.Declarations)
+                {
+                    AddValidationException($"Action {name} is declared after a hook (public) action. Place before all hooks to prevent issues", variable.TokenLocation, level: Level.Warning);
+                }
             }
             else if(variable is KSVariable v)
             {
@@ -515,6 +528,11 @@ namespace KrunkScriptParser.Validator
                 if (TryGetDeclaration(name, out IKSValue declaredVariable, true))
                 {
                     AddValidationException($"Variable '{name}' hiding previously declared variable ({declaredVariable.TokenLocation.Line}:{declaredVariable.TokenLocation.Column})", variable.TokenLocation, level: Level.Warning);
+                }
+
+                if (_hookDeclared && _pass == ValidatorPass.Declarations)
+                {
+                    AddValidationException($"Variable {name} is declared after a hook (public) action. Place before all hooks to prevent issues", variable.TokenLocation, level: Level.Warning);
                 }
             }
             else if (variable is KSParameter parameter)
@@ -607,6 +625,11 @@ namespace KrunkScriptParser.Validator
                 currentNode = currentNode.Previous;
             }
 
+            if (currentNode == null)
+            {
+                return false;
+            }
+
             do
             {
                 if(currentNode.Value.TryGetValue(name, out IKSValue value))
@@ -615,13 +638,25 @@ namespace KrunkScriptParser.Validator
 
                     if(ksValue is KSAction action)
                     {
-                        action.WasCalled = true;
+                        if(action.CallInformation == null)
+                        {
+                            action.CallInformation = new CallInfo
+                            {
+                                CallLocation = new TokenLocation(_token)
+                            };
+                        }
 
                         break;
                     }
                     else if (ksValue is KSVariable variable)
                     {
-                        variable.WasCalled = true;
+                        if(variable.CallInformation == null)
+                        {
+                            variable.CallInformation = new CallInfo
+                             {
+                                CallLocation = new TokenLocation(_token)
+                             };
+                        }
 
                         ksValue = (IKSValue)variable.Clone();
 

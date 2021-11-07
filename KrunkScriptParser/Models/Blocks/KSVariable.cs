@@ -14,7 +14,8 @@ namespace KrunkScriptParser.Models.Blocks
         public KSType Type { get; set; }
         public string Name { get;  set; }
         public IKSValue Value { get; set; }
-        public bool WasCalled { get; set; }
+        public bool WasCalled => CallInformation != null;
+        public CallInfo CallInformation { get; set; }
         public TokenLocation TokenLocation { get; set; }
 
         public KSVariable()
@@ -47,7 +48,7 @@ namespace KrunkScriptParser.Models.Blocks
                 Type = new KSType(Type),
                 Name = Name,
                 Value = Value,
-                WasCalled = WasCalled,
+                CallInformation = CallInformation,
                 TokenLocation = TokenLocation
             };
         }

@@ -88,7 +88,7 @@ namespace KrunkScriptParser.Validator
                         Parameters = parameters,
                         Name = name,
                         Global = true,
-                        WasCalled = true
+                        CallInformation = new CallInfo { Global = true }
                     };
 
                     UpdateGlobalDeclaration(action);
@@ -139,7 +139,7 @@ namespace KrunkScriptParser.Validator
                         Type = KSType.Object,
                         Value = ksObject,
                         Name = parts[0],
-                        WasCalled = true
+                        CallInformation = new CallInfo { Global = true }
                     };
 
                     _defaultDeclarations.TryAdd(parts[0], declaredValue);
@@ -191,7 +191,7 @@ namespace KrunkScriptParser.Validator
                     ksObject.Properties.TryAdd(parts[parts.Length - 1], new KSVariable
                     {
                         Type = value.Type,
-                        WasCalled = true
+                        CallInformation = new CallInfo { Global = true }
                     });
                 }
 
