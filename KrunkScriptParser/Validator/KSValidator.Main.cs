@@ -14,6 +14,8 @@ namespace KrunkScriptParser.Validator
 {
     public partial class KSValidator
     {
+        private enum ValidatorPass { Declarations, Final };
+
         public List<ValidationException> ValidationExceptions { get; private set; } = new List<ValidationException>();
 
         private LinkedList<Dictionary<string, IKSValue>> _declarations = new LinkedList<Dictionary<string, IKSValue>>();
@@ -22,7 +24,6 @@ namespace KrunkScriptParser.Validator
         private LinkedListNode<KSBlock> _blockNode;
 
         private static Dictionary<string, IKSValue> _defaultDeclarations = new Dictionary<string, IKSValue>();
-
         private static Dictionary<string, IKSValue> _krunkerGlobalVariables = new Dictionary<string, IKSValue>();
 
         private TokenIterator _iterator;
@@ -35,6 +36,7 @@ namespace KrunkScriptParser.Validator
         }
 
         private TokenReader _reader;
+        private ValidatorPass _pass = ValidatorPass.Declarations;
 
         //Used for auto complete
         internal List<KSBlock> _completionBlocks = new List<KSBlock>();
@@ -58,8 +60,16 @@ namespace KrunkScriptParser.Validator
 
                 AddNewScopeLevel(new KSBlock { Keyword = "global", TokenLocation = new TokenLocation(_token) });
 
+                InitializeTokens();
 
-                ParseTokens();
+                foreach (ValidatorPass pass in Enum.GetValues(typeof(ValidatorPass)))
+                {
+                    _iterator.Reset();
+
+                    _pass = pass;
+
+                    ParseTokens();
+                }
 
                 //Final global scope
                 RemoveScopeLevel();
@@ -83,7 +93,6 @@ namespace KrunkScriptParser.Validator
 
         private void ParseTokens()
         {
-            InitializeTokens();
 
             SkipComments();
 
@@ -91,56 +100,47 @@ namespace KrunkScriptParser.Validator
             {
                 Token currentToken = null;
 
-                try
+                currentToken = _token;
+
+                bool hasType = false;
+
+                if (_token.Type == TokenTypes.Type)
                 {
-                    currentToken = _token;
+                    //Parse type to see next token
+                    ParseType();
 
-                    bool hasType = false;
+                    hasType = true;
+                }
 
-                    if(_token.Type == TokenTypes.Type)
+                Token nextToken = _token;
+                _iterator.ReturnTo(currentToken);
+
+                if (hasType)
+                {
+                    if (nextToken.Type == TokenTypes.Name)
                     {
-                        //Parse type to see next token
-                        ParseType();
-
-                        hasType = true;
+                        ParseVariableDeclaration();
                     }
-
-                    Token nextToken = _token;
-                    _iterator.ReturnTo(currentToken);
-
-                    if (hasType)
+                    else if (nextToken.Type == TokenTypes.Action)
                     {
-                        if(nextToken.Type == TokenTypes.Name)
-                        {
-                            ParseVariableDeclaration();
-                        }
-                        else if(nextToken.Type == TokenTypes.Action)
-                        {
-                            ParseAction();
-                        }
-                        else
-                        {
-                            AddValidationException($"Unexpected input {nextToken.Value}. Expected variable name or action", nextToken, willThrow: true);
-                        }
+                        ParseAction();
                     }
                     else
                     {
-                        //Hook or action without return type
-                        if(nextToken.Type == TokenTypes.Action || nextToken.Value == "public")
-                        {
-                            KSAction action = ParseAction();
-                        }
-                        else
-                        {
-                            AddValidationException($"Unexpected input {nextToken.Value}. Expected 'public' or 'action'", nextToken, willThrow: true);
-                        }
+                        AddValidationException($"Unexpected input {nextToken.Value}. Expected variable name or action", nextToken, willThrow: true);
                     }
                 }
-                catch (ValidationException ex)
+                else
                 {
-                    AddValidationException(ex);
-
-                    break;
+                    //Hook or action without return type
+                    if (nextToken.Type == TokenTypes.Action || nextToken.Value == "public")
+                    {
+                        KSAction action = ParseAction();
+                    }
+                    else
+                    {
+                        AddValidationException($"Unexpected input {nextToken.Value}. Expected 'public' or 'action'", nextToken, willThrow: true);
+                    }
                 }
             }
         }
@@ -512,7 +512,7 @@ namespace KrunkScriptParser.Validator
                 name = v.Name;
 
                 //Variable name is declared higher up, but that's valid
-                if (TryGetDeclaration(name, out IKSValue declaredVariable))
+                if (TryGetDeclaration(name, out IKSValue declaredVariable, true))
                 {
                     AddValidationException($"Variable '{name}' hiding previously declared variable ({declaredVariable.TokenLocation.Line}:{declaredVariable.TokenLocation.Column})", variable.TokenLocation, level: Level.Warning);
                 }
@@ -526,11 +526,14 @@ namespace KrunkScriptParser.Validator
             {
                 IKSValue value = _declarationNode.Value[name];
 
-                AddValidationException($"Variable/Action '{name}' has already been declared ({value.TokenLocation.Line}:{value.TokenLocation.Column})", variable.TokenLocation);
+                //Only show errors when we're inside an action or during declarations
+                if (_declarations.Count > 1 || _pass == ValidatorPass.Declarations)
+                {
+                    AddValidationException($"Variable/Action '{name}' has already been declared ({value.TokenLocation.Line}:{value.TokenLocation.Column})", variable.TokenLocation);
+                }
 
                 return;
             }
-
         }
 
         private void UpdateDeclaration(IKSValue value)
@@ -594,10 +597,15 @@ namespace KrunkScriptParser.Validator
         /// <summary>
         /// Attempts to find a declared action/variable starting from the current block level
         /// </summary>
-        private bool TryGetDeclaration(string name, out IKSValue ksValue)
+        private bool TryGetDeclaration(string name, out IKSValue ksValue, bool outsideBlock = false)
         {
             LinkedListNode<Dictionary<string, IKSValue>> currentNode = _declarationNode;
             ksValue = null;
+
+            if(outsideBlock)
+            {
+                currentNode = currentNode.Previous;
+            }
 
             do
             {
@@ -754,9 +762,12 @@ namespace KrunkScriptParser.Validator
 
             private Token _token;
             private int _counter = 0;
+            private Token _initialToken;
 
             public TokenIterator(IEnumerable<Token> tokens)
             {
+                _initialToken = tokens.FirstOrDefault();
+
                 Token prevToken = null;
 
                 foreach(Token token in tokens)
@@ -775,6 +786,11 @@ namespace KrunkScriptParser.Validator
 
                     prevToken = token;
                 }
+            }
+
+            public void Reset()
+            {
+                _token = _initialToken;
             }
 
             public Token PeekNext()
@@ -850,6 +866,35 @@ namespace KrunkScriptParser.Validator
                 }
 
                 return Next();
+            }
+
+            public void SkipBlock()
+            {
+                if(_token.Value != "{")
+                {
+                    return;
+                }
+
+                int count = 1;
+
+                while(Next() != null)
+                {
+                    if(_token.Value == "{")
+                    {
+                        ++count;
+                    }
+                    else if (_token.Value == "}")
+                    {
+                        --count;
+                    }
+
+                    if(count == 0)
+                    {
+                        Next(false);
+
+                        break;
+                    }
+                }
             }
 
             public void SkipUntil(TokenTypes type)

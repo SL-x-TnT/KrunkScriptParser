@@ -84,6 +84,13 @@ namespace KrunkScriptParser.Validator
                 _iterator.Next();
             }
 
+            if(_pass == ValidatorPass.Declarations)
+            {
+                _iterator.SkipBlock();
+
+                return action;
+            }
+
             action.Block = ParseBlock("action", action);
 
             if(action.Type != KSType.Void && !action.Block.Lines.Any(x => x is KSStatement statement && statement.IsReturn))
