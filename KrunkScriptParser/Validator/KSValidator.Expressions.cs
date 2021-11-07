@@ -214,6 +214,11 @@ namespace KrunkScriptParser.Validator
 
                     _iterator.SkipUntil(TokenTypes.Terminator);
                 }
+                else if (_token.Value == "[")
+                {
+                    AddValidationException($"Invalid array access. Assign to a new variable first", _token);
+                    _iterator.SkipUntil(TokenTypes.Terminator);
+                }
             }
 
             //Determine the type

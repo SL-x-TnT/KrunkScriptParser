@@ -84,23 +84,27 @@ namespace KrunkScriptParser.Validator
 
                 Token nextToken = _iterator.PeekNext();
 
-                if(nextToken.Value == "." && variableName.Action?.Global == false)
-                {
-                    AddValidationException($"Invalid member property access. Assign method result to a new variable first", nextToken);
-
-                    _iterator.SkipUntil(TokenTypes.Terminator);
-                    _iterator.Prev(); //Will call .Next before method is over
-                }
-
                 if (nextToken.Value == "[")
                 {
                     _iterator.Next();
+                }
+                
+                bool isDeclared = false;
+                bool lastWasObjectProperty = false; //...
 
-                    bool isDeclared = false;
+                while(true)
+                {
+                    bool willContinue = false;
 
-                    while (TryReadIndexer(out IKSValue _, ref isDeclared))
+                    if(TryReadIndexer(out IKSValue _, ref isDeclared))
                     {
-                        //variableName.Type.DecreaseDepth();
+                        lastWasObjectProperty = false;
+
+                        //Have to decrease on actions
+                        if (variableName.Action != null)
+                        {
+                            variableName.Type.DecreaseDepth();
+                        }
 
                         if (variableName.Type != KSType.Any && variableName.Type.ArrayDepth < 0 && variableName.Type != KSType.String)
                         {
@@ -108,14 +112,64 @@ namespace KrunkScriptParser.Validator
                         }
 
                         //Has another
-                        if(_iterator.PeekNext().Value == "[")
+                        if (_iterator.PeekNext().Value == "[")
                         {
                             _iterator.Next();
                         }
+
+                        willContinue = true;
+                    }
+
+                    nextToken = _iterator.PeekNext();
+
+                    if(nextToken.Value == ".")
+                    {
+                        _iterator.Next();
+
+                        //It's an action that isn't global
+                        if (variableName.Action?.Global == false)
+                        {
+                            AddValidationException($"Invalid member property access. Assign method result to a new variable first", nextToken);
+
+                            _iterator.SkipUntil(TokenTypes.Terminator);
+                            _iterator.Prev(); //Will call .Next before method is over
+
+                            break;
+                        }
+                        else if (variableName.Action?.Global == true) //These are fine
+                        {
+                            //Type is now any
+                            variableName.Type = KSType.Any;
+
+                            willContinue = true;
+                        }
+
+                        _iterator.Next();
+
+                        if (_token.Type != TokenTypes.Name)
+                        {
+                            AddValidationException($"Missing property member", _token);
+                            _iterator.SkipUntil(TokenTypes.Terminator);
+                            _iterator.Prev(); //Will call .Next before method is over
+                        }
+                        else if(_iterator.PeekNext().Value == "[")
+                        {
+                            _iterator.Next();
+                            //lastWasObjectProperty = true;
+                        }
+                    }
+
+                    if (!willContinue)
+                    {
+                        break;
                     }
                 }
 
-                _iterator.Next();
+
+                if (!lastWasObjectProperty)
+                {
+                    _iterator.Next();
+                }
 
                 return variableName;
             }
@@ -428,6 +482,8 @@ namespace KrunkScriptParser.Validator
                     //Parse the arguments to get them out of the way. Don't currently have support to know the parameters
                     List<KSExpression> arguments = ParseArguments();
 
+                    //_iterator.Next();
+
                     IKSValue value = VerifyIsObject(initialToken.Value);
 
                     if (value == null)
@@ -455,6 +511,8 @@ namespace KrunkScriptParser.Validator
                 {
                     List<KSExpression> arguments = ParseArguments();
                     IKSValue foundAction;
+
+                    //_iterator.Next();
 
                     if (!TryGetDeclaration(initialToken.Value, out foundAction))
                     {
