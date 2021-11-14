@@ -354,9 +354,9 @@ namespace KrunkScriptParser.Validator
                             AddValidationException($"Invalid cast from '{node.Value.Type}' to '{forceConversion.ReturnType.FullType}'", forceConversion.TokenLocation, forceConversion.EndTokenLocation);
                         }
                     }
-                    else if (forceConversion.Type == node.Value.Type && !forceConversion.IsConvert)
+                    else if (forceConversion.Type == node.Value.Type && !forceConversion.IsConvert && forceConversion.IsTypeCast)
                     {
-                        AddValidationException($"Unnecessary cast to '{forceConversion.Type}'", forceConversion.TokenLocation, forceConversion.EndTokenLocation, Level.Warning);
+                        AddValidationException($"Unnecessary cast to '{forceConversion.Type}'", forceConversion.TokenLocation, forceConversion.EndTokenLocation, Level.Info);
                     }
 
                     newType = forceConversion.ReturnType;
@@ -428,7 +428,7 @@ namespace KrunkScriptParser.Validator
 
                 _iterator.Next();
 
-                conversion = new ForceConversion(ParseType(), false, null, true);
+                conversion = new ForceConversion(ParseType(), false, null, true, true);
                 conversion.TokenLocation = tokenStart;
                 conversion.EndTokenLocation = new TokenLocation(_token);
 

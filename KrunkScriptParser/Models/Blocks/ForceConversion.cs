@@ -12,16 +12,18 @@ namespace KrunkScriptParser.Models.Blocks
         public bool IsConvert { get; set; }
         public KSType ReturnType { get; set; }
         public bool ValidLeftHand { get; set; }
+        public bool IsTypeCast { get; set; }
 
         public override int Priority => ExpressionItem.MaxPriority - 1;
         public override bool HasType => true;
 
-        public ForceConversion(KSType type, bool isConvert, KSType returnType = null, bool validLeftHand = false)
+        public ForceConversion(KSType type, bool isConvert, KSType returnType = null, bool validLeftHand = false, bool isTypeCast = false)
         {
             Type = type;
             IsConvert = isConvert;
             ReturnType = returnType ?? type;
             ValidLeftHand = validLeftHand;
+            IsTypeCast = isTypeCast;
         }
 
         public bool IsValid(KSType otherType)
