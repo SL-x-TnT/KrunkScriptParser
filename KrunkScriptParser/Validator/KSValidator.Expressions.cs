@@ -343,16 +343,20 @@ namespace KrunkScriptParser.Validator
                     {
                         if (forceConversion.Type == KSType.LengthOf)
                         {
-                            AddValidationException($"lengthOf expects an array, '{KSType.String.FullType}', or '{KSType.Any}'. Received '{node.Value.Type}'", node.Value.TokenLocation);
+                            AddValidationException($"lengthOf expects an array, '{KSType.String.FullType}', or '{KSType.Any}'. Received '{node.Value.Type}'", forceConversion.TokenLocation, forceConversion.EndTokenLocation);
                         }
                         else if (forceConversion.Type == KSType.NotEmpty)
                         {
-                            AddValidationException($"notEmpty expects an '{KSType.Object}' or '{KSType.Any}'. Received '{node.Value.Type}'", node.Value.TokenLocation);
+                            AddValidationException($"notEmpty expects an '{KSType.Object}' or '{KSType.Any}'. Received '{node.Value.Type}'", forceConversion.TokenLocation, forceConversion.EndTokenLocation);
                         }
                         else
                         {
-                            AddValidationException($"Invalid cast from '{node.Value.Type}' to '{forceConversion.ReturnType.FullType}'", node.Value.TokenLocation);
+                            AddValidationException($"Invalid cast from '{node.Value.Type}' to '{forceConversion.ReturnType.FullType}'", forceConversion.TokenLocation, forceConversion.EndTokenLocation);
                         }
+                    }
+                    else if (forceConversion.Type == node.Value.Type && !forceConversion.IsConvert)
+                    {
+                        AddValidationException($"Unnecessary cast to '{forceConversion.Type}'", forceConversion.TokenLocation, forceConversion.EndTokenLocation, Level.Warning);
                     }
 
                     newType = forceConversion.ReturnType;

@@ -517,7 +517,7 @@ namespace KrunkScriptParser.Validator
 
                 if (!action.IsHook && _hookDeclared && _pass == ValidatorPass.Declarations)
                 {
-                    AddValidationException($"Action {name} is declared after a hook (public) action. Place before all hooks to prevent issues", variable.TokenLocation, level: Level.Warning);
+                    AddValidationException($"Action {name} is declared after a hook (public) action. Place before all hooks to prevent issues", variable.TokenLocation, level: Level.Warning, pass: _pass);
                 }
             }
             else if(variable is KSVariable v)
@@ -532,7 +532,7 @@ namespace KrunkScriptParser.Validator
 
                 if (_hookDeclared && _pass == ValidatorPass.Declarations)
                 {
-                    AddValidationException($"Variable {name} is declared after a hook (public) action. Place before all hooks to prevent issues", variable.TokenLocation, level: Level.Warning);
+                    AddValidationException($"Variable {name} is declared after a hook (public) action. Place before all hooks to prevent issues", variable.TokenLocation, level: Level.Warning, pass: _pass);
                 }
             }
             else if (variable is KSParameter parameter)
@@ -547,7 +547,7 @@ namespace KrunkScriptParser.Validator
                 //Only show errors when we're inside an action or during declarations
                 if (_declarations.Count > 1 || _pass == ValidatorPass.Declarations)
                 {
-                    AddValidationException($"Variable/Action '{name}' has already been declared ({value.TokenLocation.Line}:{value.TokenLocation.Column})", variable.TokenLocation);
+                    AddValidationException($"Variable/Action '{name}' has already been declared ({value.TokenLocation.Line}:{value.TokenLocation.Column})", variable.TokenLocation, pass: _pass);
                 }
 
                 return;
@@ -735,14 +735,17 @@ namespace KrunkScriptParser.Validator
         /// <summary>
         /// Adds a validation exception. Will continue parsing
         /// </summary>
-        private void AddValidationException(ValidationException ex)
+        private void AddValidationException(ValidationException ex, ValidatorPass pass = ValidatorPass.Final)
         {
-            ValidationExceptions.Add(ex);
+            if (_pass == pass)
+            {
+                ValidationExceptions.Add(ex);
 
-            OnValidationError?.Invoke(this, ex);
+                OnValidationError?.Invoke(this, ex);
+            }
         }
 
-        private void AddValidationException(string message, TokenLocation startToken, TokenLocation endToken = null, Level level = Level.Error, bool willThrow = false)
+        private void AddValidationException(string message, TokenLocation startToken, TokenLocation endToken = null, Level level = Level.Error, bool willThrow = false, ValidatorPass pass = ValidatorPass.Final)
         {
             startToken ??= new TokenLocation(_token);
             endToken ??= startToken;
@@ -755,22 +758,22 @@ namespace KrunkScriptParser.Validator
             }
             else
             {
-                AddValidationException(error);
+                AddValidationException(error, pass);
             }
         }
 
-        private void AddValidationException(string message, TokenLocation startToken, Token endToken, Level level = Level.Error, bool willThrow = false)
+        private void AddValidationException(string message, TokenLocation startToken, Token endToken, Level level = Level.Error, bool willThrow = false, ValidatorPass pass = ValidatorPass.Final)
         {
             TokenLocation endLocation = endToken == null ? startToken : new TokenLocation(endToken);
 
-            AddValidationException(message, startToken, endLocation, level, willThrow);
+            AddValidationException(message, startToken, endLocation, level, willThrow, pass);
         }
 
-        private void AddValidationException(string message, Token startToken, Token endToken = null, Level level = Level.Error, bool willThrow = false)
+        private void AddValidationException(string message, Token startToken, Token endToken = null, Level level = Level.Error, bool willThrow = false, ValidatorPass pass = ValidatorPass.Final)
         {
             endToken ??= startToken;
 
-            AddValidationException(message, new TokenLocation(startToken), new TokenLocation(endToken), level, willThrow);
+            AddValidationException(message, new TokenLocation(startToken), new TokenLocation(endToken), level, willThrow, pass);
         }
 
         #endregion
