@@ -189,9 +189,9 @@ namespace KrunkScriptParser.Helpers
         private string ReadNumber()
         {
             StringBuilder builder = new StringBuilder();
-            char prev = (char)0x00;
 
             bool isHex = false;
+            bool isENotation = false;
 
             //Check for hex
             if(PeekChar() == '0')
@@ -210,7 +210,20 @@ namespace KrunkScriptParser.Helpers
             {
                 char c = PeekChar();
 
-                if(isHex && IsHex(c) ||         //Hex
+                if(c == 'e' && !isENotation && !isHex)
+                {
+                    isENotation = true;
+
+                    builder.Append(ReadChar());
+
+                    c = PeekChar();
+
+                    if (c == '-' || c == '+')
+                    {
+                        builder.Append(ReadChar());
+                    }
+                }
+                else if(isHex && IsHex(c) ||         //Hex
                     char.IsDigit(c) ||          //Digit
                     (!isHex && c == '.'))       //Double/Float   
                 {
@@ -220,8 +233,6 @@ namespace KrunkScriptParser.Helpers
                 {
                     break;
                 }
-
-                prev = c;
             }
 
             return builder.ToString();

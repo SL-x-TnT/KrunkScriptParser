@@ -82,13 +82,13 @@ namespace KrunkScriptParser.Validator
 
             catch (ValidationException ex)
             {
-                AddValidationException(ex);
+                AddValidationException(ex, _pass);
 
                 return false;
             }
             catch (Exception ex)
             {
-                AddValidationException($"Parser failed due to an exception. Message: {ex.Message}", _token);
+                AddValidationException($"Parser failed due to an exception. Message: {ex.Message}", _token, pass: _pass);
 
                 return false;
             }
