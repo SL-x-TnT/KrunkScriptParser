@@ -354,11 +354,14 @@ namespace KrunkScriptParser.Validator
                             AddValidationException($"Invalid cast from '{node.Value.Type}' to '{forceConversion.ReturnType.FullType}'", forceConversion.TokenLocation, forceConversion.EndTokenLocation);
                         }
                     }
+                    else if(forceConversion.Type == KSType.Bool && node.Value.Type == KSType.Object)
+                    {
+                        AddValidationException($"Object types will always return false when using '!'. Use 'notEmpty' to check for an empty object", forceConversion.TokenLocation, forceConversion.EndTokenLocation, Level.Warning);
+                    }
                     else if (forceConversion.Type == node.Value.Type && !forceConversion.IsConvert && forceConversion.IsTypeCast)
                     {
                         AddValidationException($"Unnecessary cast to '{forceConversion.Type}'", forceConversion.TokenLocation, forceConversion.EndTokenLocation, Level.Info);
                     }
-
                     newType = forceConversion.ReturnType;
 
                     node.Value.Type = forceConversion.ReturnType;
