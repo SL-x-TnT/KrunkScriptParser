@@ -1,33 +1,38 @@
 {
-  "name": "krnk",
-  "displayName": "KrunkScript-Validator",
-  "description": "A syntax validator for KrunkScript",
+  "name": "krunkscript-validator",
+  "displayName": "KrunkScript Validator",
+  "description": "Validation and autocomplete support for Krunker's 'KrunkScript' scripting language.",
   "version": "0.2.7",
+  "icon": "images/icon.png",
   "publisher": "SLxTnT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SL-x-TnT/KrunkScriptParser"
+  },
   "engines": {
     "vscode": "^1.61.0"
   },
   "categories": [
-        "Other"
-    ],
-    "activationEvents": [
-        "onLanguage:krnk"
-    ],
-    "main": "./out/extension",
-    "contributes": {
-        "languages": [
-          {
-            "id": "krnk",
-            "aliases": [
-              "KrunkScript",
-              "krnk"
-            ],
-            "extensions": [
-              ".krnk"
-            ]
-          }
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:krnk"
+  ],
+  "main": "./out/extension",
+  "contributes": {
+    "languages": [
+      {
+        "id": "krnk",
+        "aliases": [
+          "KrunkScript",
+          "krnk"
+        ],
+        "extensions": [
+          ".krnk"
         ]
-      },
+      }
+    ]
+  },
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
@@ -37,19 +42,13 @@
     "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
-    "@types/glob": "^7.1.4",
-    "@types/mocha": "^9.0.0",
     "@types/node": "14.x",
     "@types/vscode": "^1.61.0",
-    "@typescript-eslint/eslint-plugin": "^5.1.0",
-    "@typescript-eslint/parser": "^5.1.0",
-    "@vscode/test-electron": "^1.6.2",
-    "eslint": "^8.1.0",
-    "glob": "^7.1.7",
-    "mocha": "^9.1.3",
-    "typescript": "^4.4.4"
+    "eslint": "^8.1.0"
   },
   "dependencies": {
+    "tsc": "^2.0.3",
+    "typescript": "^4.4.4",
     "vscode-jsonrpc": "^6.0.0",
     "vscode-languageclient": "^7.0.0"
   }
