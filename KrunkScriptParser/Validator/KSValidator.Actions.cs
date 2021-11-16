@@ -262,7 +262,7 @@ namespace KrunkScriptParser.Validator
             {
                 if (parameterIndex >= action.Parameters.Count)
                 {
-                    AddValidationException($"Invalid argument count. Received {arguments.Count} and expected {action.Parameters.Count}", argument.TokenLocation, argument.EndTokenLocation);
+                    AddValidationException($"Invalid argument count for '{action.Name}'. Received {arguments.Count} and expected {action.Parameters.Count}", argument.TokenLocation, argument.EndTokenLocation);
 
                     return;
                 }
@@ -285,7 +285,7 @@ namespace KrunkScriptParser.Validator
                     }
                     else if(!action.Global && argument.Type != KSType.Any) //Global actions can receive an "any" type without issues
                     {
-                        AddValidationException($"Expected type '{parameter.Type.FullType}' for parameter '{parameter.Name}' (arg: {parameterIndex + 1}). Received '{argument.Type.FullType}'", argument.TokenLocation, argument.EndTokenLocation);
+                        AddValidationException($"Expected type '{parameter.Type.FullType}' for parameter '{parameter.Name}' (arg: {parameterIndex + 1}) for '{action.Name}'. Received '{argument.Type.FullType}'", argument.TokenLocation, argument.EndTokenLocation);
                     }
                 }
 
@@ -304,7 +304,7 @@ namespace KrunkScriptParser.Validator
                 TokenLocation tokenStart = arguments.FirstOrDefault()?.TokenLocation ?? new TokenLocation(_token.Prev);
                 TokenLocation tokenEnd = arguments.LastOrDefault()?.EndTokenLocation ?? new TokenLocation(_token);
 
-                AddValidationException($"Invalid argument count. Received {arguments.Count} and expected {expected}", tokenStart, tokenEnd);
+                AddValidationException($"Invalid argument count for '{action.Name}'. Received {arguments.Count} and expected {expected}", tokenStart, tokenEnd);
             }
         }
     }
