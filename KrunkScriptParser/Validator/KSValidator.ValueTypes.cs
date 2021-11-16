@@ -569,6 +569,12 @@ namespace KrunkScriptParser.Validator
                 {
                     AddValidationException($"Global '{name}' is not defined", initialToken, _token);
 
+                    //Attempting to call an undefined action
+                    if(_token.Value == "(")
+                    {
+                        List<KSExpression> arguments = ParseArguments();
+                    }
+
                     return null;
                 }
 

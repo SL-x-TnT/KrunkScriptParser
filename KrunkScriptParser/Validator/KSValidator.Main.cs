@@ -281,7 +281,14 @@ namespace KrunkScriptParser.Validator
             }
 
             //Line terminator
-            if (_token.Type != TokenTypes.Terminator)
+            if(_token.Value == "(")
+            {
+                AddValidationException($"Unexpected '('", _token);
+
+                _iterator.SkipUntil(TokenTypes.Terminator);
+                _iterator.Next(false);
+            }
+            else if (_token.Type != TokenTypes.Terminator)
             {
                 AddValidationException($"Expected ';'", _token);
 
