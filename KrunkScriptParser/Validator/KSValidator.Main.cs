@@ -215,6 +215,7 @@ namespace KrunkScriptParser.Validator
         {
             KSVariable variable = new KSVariable
             {
+                Documentation = ParseDocumentationInfo(),
                 Type = ParseType(),
                 TokenLocation = new TokenLocation(_token),
                 Name = ""
@@ -308,6 +309,31 @@ namespace KrunkScriptParser.Validator
             return variable;
         }
 
+        private DocumentationInfo ParseDocumentationInfo()
+        {
+            DocumentationInfo info = new DocumentationInfo();
+
+            if (_token.Prev?.Type != TokenTypes.Comment)
+            {
+                return info;
+            }
+
+            Token prevToken = _token.Prev;
+
+            List<string> lines = new List<string>();
+
+            while(prevToken?.Type == TokenTypes.Comment && prevToken.Value.StartsWith("###"))
+            {
+                lines.Add(prevToken.Value.Substring(3));
+
+                prevToken = prevToken.Prev;
+            }
+
+            info.Text = String.Join("\n", lines.Reverse<string>());
+
+            return info;
+        }
+
         #region Utilities
 
         public List<AutoCompleteSuggestion> AutoCompleteSuggestions(string text, int line, int column)
@@ -375,32 +401,44 @@ namespace KrunkScriptParser.Validator
                                 {
                                     foreach (KeyValuePair<string, IKSValue> property in ksObject.Properties)
                                     {
-                                        if (property.Value is KSAction action)
+                                        if (property.Key.StartsWith(parts.Last()))
                                         {
-                                            StringBuilder detailBuilder = new StringBuilder($"{action.Type} {action.Name}(");
-                                            detailBuilder.AppendJoin(", ", action.Parameters.Select(x => $"{x.Type} {x.Name}"));
-                                            detailBuilder.Append(")");
-
-                                            StringBuilder formatBuilder = new StringBuilder($"{property.Key}(");
-                                            formatBuilder.AppendJoin(", ", action.Parameters.Select((x, i) => $"${{{i + 1}:{x.Name}}}"));
-                                            formatBuilder.Append(")");
-
-                                            suggestions.Add(new AutoCompleteSuggestion
+                                            if (property.Value is KSAction action)
                                             {
-                                                Text = property.Key,
-                                                Type = SuggestionType.Method,
-                                                Details = detailBuilder.ToString(),
-                                                InsertTextFormat = formatBuilder.ToString(),
-                                            });
-                                        }
-                                        else
-                                        {
-                                            suggestions.Add(new AutoCompleteSuggestion
+                                                StringBuilder detailBuilder = new StringBuilder($"{action.Type} {action.Name}(");
+                                                detailBuilder.AppendJoin(", ", action.Parameters.Select(x => $"{x.Type}{(x.Optional ? "?" : "")} {(x.MultiProp ? "..." : "")}{x.Name}"));
+                                                detailBuilder.Append(")");
+
+                                                StringBuilder formatBuilder = new StringBuilder($"{property.Key}(");
+                                                formatBuilder.AppendJoin(", ", action.Parameters.Select((x, i) => $"${{{i + 1}:{x.Name}}}"));
+                                                formatBuilder.Append(")");
+
+                                                suggestions.Add(new AutoCompleteSuggestion
+                                                {
+                                                    Text = property.Key,
+                                                    Type = SuggestionType.Method,
+                                                    Details = detailBuilder.ToString(),
+                                                    InsertTextFormat = formatBuilder.ToString(),
+                                                    Documentation = variable.Documentation?.Text
+                                                });
+                                            }
+                                            else
                                             {
-                                                Text = property.Key,
-                                                Type = SuggestionType.Variable,
-                                                Details = $"{property.Value.Type} {String.Join(".", parts.Take(parts.Length - 1))}.{property.Key}"
-                                            });
+                                                DocumentationInfo documention = null;
+
+                                                if(property.Value is KSExpression expression)
+                                                {
+                                                    documention = expression.Documentation;
+                                                }
+
+                                                suggestions.Add(new AutoCompleteSuggestion
+                                                {
+                                                    Text = property.Key,
+                                                    Type = SuggestionType.Variable,
+                                                    Details = $"{property.Value.Type} {String.Join(".", parts.Take(parts.Length - 1))}.{property.Key}",
+                                                    Documentation = documention?.Text
+                                                });
+                                            }
                                         }
                                     }
                                 }
@@ -413,7 +451,8 @@ namespace KrunkScriptParser.Validator
                                 {
                                     Text = variable.Name,
                                     Type = SuggestionType.Variable,
-                                    Details = $"{variable.Type} {variable.Name}"
+                                    Details = $"{variable.Type} {variable.Name}",
+                                    Documentation = variable.Documentation?.Text
                                 });
                             }
                         }
@@ -435,7 +474,8 @@ namespace KrunkScriptParser.Validator
                                 Text = action.Name,
                                 Type = SuggestionType.Method,
                                 Details = detailBuilder.ToString(),
-                                InsertTextFormat = formatBuilder.ToString()
+                                InsertTextFormat = formatBuilder.ToString(),
+                                Documentation = action.Documentation?.Text
                             });
                         }
                     }

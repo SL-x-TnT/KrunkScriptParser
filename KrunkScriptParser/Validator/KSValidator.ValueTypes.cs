@@ -228,10 +228,14 @@ namespace KrunkScriptParser.Validator
         {
             _iterator.Next();
 
-            KSObject ksObject = new KSObject();
+            KSObject ksObject = new KSObject
+            {
+            };
 
             while (_token.Value != "}" && _token.Type != TokenTypes.Terminator)
             {
+                DocumentationInfo documentation = ParseDocumentationInfo();
+
                 if(_token.Type == TokenTypes.Type)
                 {
                     KSType type = ParseType();
@@ -260,7 +264,7 @@ namespace KrunkScriptParser.Validator
 
                 //KSExpression expression = ParseExpression(depth: depth + 1);
                 KSExpression expression = ParseExpression(depth: depth + 1);
-
+                expression.Documentation = documentation;
                 expression.Type = KSType.Any;
 
                 if (!ksObject.Properties.TryAdd(name, expression))

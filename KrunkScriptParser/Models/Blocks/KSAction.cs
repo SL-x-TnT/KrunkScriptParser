@@ -18,6 +18,7 @@ namespace KrunkScriptParser.Models.Blocks
         public KSBlock Block { get; set; }
         public bool HasAReturn { get; set; }
         public bool WasCalled => CallInformation != null;
+        public DocumentationInfo Documentation { get; set; }
 
         //Leaving for now, but possibly change to a list of call locations
         public CallInfo CallInformation { get; set; }

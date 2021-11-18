@@ -36,7 +36,7 @@ export function activate(context: ExtensionContext) {
     // Create the language client and start the client.
     client = new LanguageClient('krnkServer', 'KrunkScript Server', serverOptions, clientOptions);
     client.trace = Trace.Verbose;
-
+    
     let disposable = client.start();
 
     // Push the disposable to the context's subscriptions so that the

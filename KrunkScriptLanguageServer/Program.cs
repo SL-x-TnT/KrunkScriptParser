@@ -28,6 +28,7 @@ namespace KrunkScriptLanguageServer
                     .WithServices(ConfigureServices)
                     .WithHandler<KrnkDocumentSyncHandler>()
                     .WithHandler<CompletionHandler>()
+                    .WithHandler<HoverHandler>()
                 );
              
             await server.WaitForExit;

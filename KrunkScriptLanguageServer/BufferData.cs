@@ -10,6 +10,36 @@ namespace KrunkScriptLanguageServer
         public KSValidator Validator { get; set; }
         public string Buffer { get; set; }
 
+        public string GetHoverText(int line, int position)
+        {
+            int cursorPosition = GetPosition(line, position);
+
+            int startPosition = cursorPosition;
+            for (int i = cursorPosition - 1; i >= 0; --i)
+            {
+                if (!ValidChar(Buffer[i], false))
+                {
+                    break;
+                }
+
+                --startPosition;
+            }
+
+            int length = cursorPosition - startPosition;
+
+            for (int i = cursorPosition; i < Buffer.Length; ++i)
+            {
+                if (!ValidChar(Buffer[i], false))
+                {
+                    break;
+                }
+
+                ++length;
+            }
+
+            return Buffer.Substring(startPosition, length);
+        }
+
         public string GetText(int line, int position)
         {
             int cursorPosition = GetPosition(line, position);
@@ -50,9 +80,9 @@ namespace KrunkScriptLanguageServer
             return count + position;
         }
 
-        private bool ValidChar(char c)
+        private bool ValidChar(char c, bool includeSpace = true)
         {
-            return char.IsLetterOrDigit(c) || c == '_' || c == '.' || c== ' ';
+            return char.IsLetterOrDigit(c) || c == '_' || c == '.' || (includeSpace && c == ' ');
         }
     }
 }

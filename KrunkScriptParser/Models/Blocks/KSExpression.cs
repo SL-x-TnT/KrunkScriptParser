@@ -17,6 +17,7 @@ namespace KrunkScriptParser.Models.Blocks
         public bool HasAssignment { get; set; }
         public bool HasPostfix { get; set; }
         public new TokenLocation EndTokenLocation => Items.LastOrDefault()?.TokenLocation;
+        public DocumentationInfo Documentation { get; set; }
 
         public bool TryReadObject(out KSObject ksObject)
         {

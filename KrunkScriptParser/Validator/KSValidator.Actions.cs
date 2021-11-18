@@ -15,7 +15,8 @@ namespace KrunkScriptParser.Validator
         {
             KSAction action = new KSAction
             {
-                TokenLocation = new TokenLocation(_token)
+                TokenLocation = new TokenLocation(_token),
+                Documentation = ParseDocumentationInfo()
             };
 
             if(_token.Value == "public")
