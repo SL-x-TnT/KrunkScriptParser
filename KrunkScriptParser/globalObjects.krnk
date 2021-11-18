@@ -1,8 +1,22 @@
+###**Bans player from the game _(server only)_**
+###- playerId: id of player to ban
 GAME.ADMIN.ban(str playerID) 
+
+###**Kicks player from the game _(server only)_**
+###- playerId: id of player to kick
 GAME.ADMIN.kick(str playerID) 
+
+###**Plays fullscreen video ad _Can only be called once every 90 seconds_**
 GAME.ADS.playVideo()
+
+###**Returns an obj[] of all AIs**
 obj[] GAME.AI.list() 
+
+###**Removes an AI from the game**
+###- sid: AI sid
 GAME.AI.remove(str sid) 
+
+
 obj GAME.AI.spawn(str aid, str name, num x, num y, num z, obj? data) 
 GAME.ANIM.playClip(obj object, str clipID, num reps)
 GAME.ANIM.stopClip(obj object, str clipID)
@@ -82,8 +96,23 @@ GAME.SCENE.rotObj(obj o, num x, num y, num z)
 GAME.SCENE.scaleObj(obj o, num x, num y, num z)
 GAME.SCENE.setAmbientLight(str color, num intensity)
 GAME.SCENE.setFog(str colr, num distance)
+
+###**Sky Color: Scene background color**
+###- color: Sky color
 GAME.SCENE.setSkyColor(str color)
+
+###**Sky Dome: Scene background dome. Can be a 3 tier gradient with texture**
+###- color1: Color 1
+###- color2: Color 2
+###- color3: Color 3
+###- data: Additional data passed as an object (optional)
+###- - texture: Asset Id of texture
+###- - emissive: Emissive color
+###- - emissiveTexture: Asset Id of emissive texture
+###- - textureMoveAxis: Move axis of texture. Either 0 or 1 / "x" or "y"
+###- - textureMoveSpeed: Texture move speed. Between -20 to 20
 GAME.SCENE.setSkyDome(str color1, str color2, str color3, obj? data)
+
 GAME.SCENE.setSkyLight(str color, num intensity, num sunAngX, num sunAngY, num distance)
 GAME.SETTINGS.set(str key, str val)
 obj GAME.SOUND.play2D(str aid, num vol, num rate, bool loop)

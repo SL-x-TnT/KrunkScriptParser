@@ -401,7 +401,7 @@ namespace KrunkScriptParser.Validator
                                 {
                                     foreach (KeyValuePair<string, IKSValue> property in ksObject.Properties)
                                     {
-                                        if (property.Key.StartsWith(parts.Last()))
+                                        if (property.Key.StartsWith(parts.Last(), StringComparison.OrdinalIgnoreCase))
                                         {
                                             if (property.Value is KSAction action)
                                             {
@@ -419,7 +419,7 @@ namespace KrunkScriptParser.Validator
                                                     Type = SuggestionType.Method,
                                                     Details = detailBuilder.ToString(),
                                                     InsertTextFormat = formatBuilder.ToString(),
-                                                    Documentation = variable.Documentation?.Text
+                                                    Documentation = action.Documentation?.Text
                                                 });
                                             }
                                             else

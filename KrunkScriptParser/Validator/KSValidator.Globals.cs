@@ -46,8 +46,16 @@ namespace KrunkScriptParser.Validator
             TokenReader reader = new TokenReader(text);
             _iterator = new TokenIterator(reader.ReadAllTokens());
 
+            //Parsing documentation info requires it to be on the action/variable the documentation is for
+            if(_token.Type == TokenTypes.Comment)
+            {
+                _iterator.Next();
+            }
+
             while (_iterator.PeekNext() != null)
             {
+                DocumentationInfo documentation = ParseDocumentationInfo();
+
                 KSType returnType = KSType.Void;
 
                 if (_token.Type == TokenTypes.Type)
@@ -88,7 +96,8 @@ namespace KrunkScriptParser.Validator
                         Parameters = parameters,
                         Name = name,
                         Global = true,
-                        CallInformation = new CallInfo { Global = true }
+                        CallInformation = new CallInfo { Global = true },
+                        Documentation = documentation
                     };
 
                     UpdateGlobalDeclaration(action);
@@ -101,7 +110,8 @@ namespace KrunkScriptParser.Validator
                     KSVariable variable = new KSVariable
                     {
                         Name = name,
-                        Type = returnType
+                        Type = returnType,
+                        Documentation = documentation
                     };
 
                     UpdateGlobalDeclaration(variable);

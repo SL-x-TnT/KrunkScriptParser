@@ -66,7 +66,10 @@ namespace KrunkScriptLanguageServer
                     Kind = (CompletionItemKind)suggestion.Type,
                     InsertTextFormat = !String.IsNullOrEmpty(suggestion.InsertTextFormat) ? InsertTextFormat.Snippet : InsertTextFormat.PlainText,
                     InsertText = suggestion.InsertTextFormat,
-                    Documentation = suggestion.Documentation
+                    Documentation = new StringOrMarkupContent(new MarkupContent{
+                        Kind = MarkupKind.Markdown,
+                        Value = suggestion.Documentation ?? ""
+                    })
                 };
             }), suggestions.Count > 1);
 
