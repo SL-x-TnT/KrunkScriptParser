@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace KrunkScriptLanguageServer
 {
-    class HoverHandler : IHoverHandler
+    class Definitionhandler : IDefinitionHandler
     {
         private readonly ILanguageServer _router;
         private readonly BufferManager _bufferManager;
@@ -24,29 +24,28 @@ namespace KrunkScriptLanguageServer
             }
         );
 
-        public TextDocumentRegistrationOptions GetRegistrationOptions()
-        {
-            return new TextDocumentChangeRegistrationOptions
-            {
-                DocumentSelector = _documentSelector,
-                SyncKind = TextDocumentSyncKind.None
-            };
-        }
-
-        public HoverHandler(ILanguageServer router, BufferManager bufferManager)
+        public Definitionhandler(ILanguageServer router, BufferManager bufferManager)
         {
             _router = router;
             _bufferManager = bufferManager;
         }
 
-        public async Task<Hover> Handle(HoverParams request, CancellationToken cancellationToken)
+        public TextDocumentRegistrationOptions GetRegistrationOptions()
+        {
+            return new TextDocumentRegistrationOptions
+            {
+                DocumentSelector = _documentSelector
+            };
+        }
+
+        public async Task<LocationOrLocations> Handle(DefinitionParams request, CancellationToken cancellationToken)
         {
             string documentPath = request.TextDocument.Uri.ToString();
             BufferData buffer = _bufferManager.GetBuffer(documentPath);
 
             if (buffer == null)
             {
-                return new Hover();
+                return new LocationOrLocations();
             }
 
             string text = buffer.GetHoverText((int)request.Position.Line, (int)request.Position.Character);
@@ -55,29 +54,27 @@ namespace KrunkScriptLanguageServer
 
             string lastAccess = text.Split('.').Last();
 
-            suggestions = suggestions.Where(x => x.Text == lastAccess).ToList();
+            AutoCompleteSuggestion suggestion = suggestions.FirstOrDefault(x => x.Text == lastAccess);
+            DefinitionLocation location = suggestion?.Location;
 
-            if(suggestions.Count != 1)
+            //No definition
+            if(suggestion?.Location == null)
             {
-                return new Hover();
+                return null;
             }
 
-            List<MarkedString> hoverData = new List<MarkedString> { new MarkedString(suggestions[0].Details) };
-
-            if(suggestions[0].Documentation != null)
+            return new LocationOrLocations(new Location
             {
-                hoverData.Add(new MarkedString(suggestions[0].Documentation));
-            }
-
-            return new Hover
-            {
-                Contents = new MarkedStringsOrMarkupContent(hoverData)
-            };
+                Uri = String.IsNullOrEmpty(suggestion.FileName) ? request.TextDocument.Uri : new Uri($"file:///{suggestion.FileName}"),
+                Range = new OmniSharp.Extensions.LanguageServer.Protocol.Models.Range(
+                    new Position(location.StartLocation.Line - 1, location.StartLocation.Column - 1),
+                    new Position(location.EndLocation.Line - 1, location.EndLocation.ColumnEnd - 1)
+                    )
+            });
         }
 
-        public void SetCapability(HoverCapability capability)
+        public void SetCapability(DefinitionCapability capability)
         {
-
         }
     }
 

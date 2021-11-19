@@ -18,6 +18,7 @@ namespace KrunkScriptParser.Models.Blocks
         public CallInfo CallInformation { get; set; }
         public TokenLocation TokenLocation { get; set; }
         public DocumentationInfo Documentation { get; set; }
+        public bool Global { get; set; }
 
         public KSVariable()
         {

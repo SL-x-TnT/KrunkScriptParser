@@ -40,5 +40,7 @@ namespace KrunkScriptParser.Models
         public SuggestionType Type { get; set; } = SuggestionType.Method;
         public string InsertTextFormat { get; set; }
         public string Documentation { get; set; }
+        public DefinitionLocation Location { get; set; }
+        public string FileName { get; set; }
     }
 }

@@ -3,7 +3,7 @@
 import { workspace, Disposable, ExtensionContext, window } from 'vscode';
 import { LanguageClient, LanguageClientOptions, SettingMonitor, ServerOptions, TransportKind, InitializeParams } from 'vscode-languageclient/node';
 import { Trace } from 'vscode-jsonrpc';
-import * as path from 'path';
+//import * as path from 'path';
 
 let client: LanguageClient;
 
@@ -11,7 +11,7 @@ export function activate(context: ExtensionContext) {
 
     // The server is implemented in node
     let serverExe = 'dotnet';
-    let dllLocation = context.asAbsolutePath(path.join('server', 'KrunkScriptLanguageServer.dll'));
+    let dllLocation = context.asAbsolutePath('server/KrunkScriptLanguageServer.dll');
 
     // If the extension is launched in debug mode then the debug server options are used
     // Otherwise the run options are used
@@ -36,7 +36,7 @@ export function activate(context: ExtensionContext) {
     // Create the language client and start the client.
     client = new LanguageClient('krnkServer', 'KrunkScript Server', serverOptions, clientOptions);
     client.trace = Trace.Verbose;
-    
+
     let disposable = client.start();
 
     // Push the disposable to the context's subscriptions so that the

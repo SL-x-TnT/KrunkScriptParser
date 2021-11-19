@@ -25,7 +25,7 @@ namespace KrunkScriptParser.Validator
 
         private static Dictionary<string, IKSValue> _defaultDeclarations = new Dictionary<string, IKSValue>();
         private static Dictionary<string, IKSValue> _krunkerGlobalVariables = new Dictionary<string, IKSValue>();
-
+        private static FileInfo _globalFile = new FileInfo(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "globalObjects.krnk"));
         private TokenIterator _iterator;
         private Token _token
         {
@@ -335,7 +335,7 @@ namespace KrunkScriptParser.Validator
         }
 
         #region Utilities
-
+        
         public List<AutoCompleteSuggestion> AutoCompleteSuggestions(string text, int line, int column)
         {
             text = text.Trim();
@@ -359,7 +359,7 @@ namespace KrunkScriptParser.Validator
 
                 if((block.TokenLocation.Line < line ) || (block.TokenLocation.Line == line && block.TokenLocation.Column >= column))
                 {
-                    block = _completionBlocks[i + 1];
+                    block = _completionBlocks[i];
 
                     break;
                 }
@@ -419,7 +419,13 @@ namespace KrunkScriptParser.Validator
                                                     Type = SuggestionType.Method,
                                                     Details = detailBuilder.ToString(),
                                                     InsertTextFormat = formatBuilder.ToString(),
-                                                    Documentation = action.Documentation?.Text
+                                                    Documentation = action.Documentation?.Text,
+                                                    Location = new DefinitionLocation
+                                                    {
+                                                        StartLocation = action.TokenLocation,
+                                                        EndLocation =   action.TokenLocation
+                                                    },
+                                                    FileName = action.Global ? _globalFile.FullName : String.Empty
                                                 });
                                             }
                                             else
@@ -436,7 +442,13 @@ namespace KrunkScriptParser.Validator
                                                     Text = property.Key,
                                                     Type = SuggestionType.Variable,
                                                     Details = $"{property.Value.Type} {String.Join(".", parts.Take(parts.Length - 1))}.{property.Key}",
-                                                    Documentation = documention?.Text
+                                                    Documentation = documention?.Text,
+                                                    Location = new DefinitionLocation
+                                                    {
+                                                        StartLocation = property.Value.TokenLocation,
+                                                        EndLocation = property.Value.TokenLocation
+                                                    },
+                                                    FileName = variable.Global ? _globalFile.FullName : String.Empty
                                                 });
                                             }
                                         }
@@ -452,7 +464,12 @@ namespace KrunkScriptParser.Validator
                                     Text = variable.Name,
                                     Type = SuggestionType.Variable,
                                     Details = $"{variable.Type} {variable.Name}",
-                                    Documentation = variable.Documentation?.Text
+                                    Documentation = variable.Documentation?.Text,
+                                    Location = new DefinitionLocation
+                                    {
+                                        StartLocation = variable.TokenLocation,
+                                        EndLocation = variable.TokenLocation
+                                    }
                                 });
                             }
                         }
@@ -475,7 +492,13 @@ namespace KrunkScriptParser.Validator
                                 Type = SuggestionType.Method,
                                 Details = detailBuilder.ToString(),
                                 InsertTextFormat = formatBuilder.ToString(),
-                                Documentation = action.Documentation?.Text
+                                Documentation = action.Documentation?.Text,
+                                Location = new DefinitionLocation
+                                {
+                                    StartLocation = action.TokenLocation,
+                                    EndLocation = action.TokenLocation
+                                },
+                                FileName = action.Global ? _globalFile.FullName : String.Empty
                             });
                         }
                     }

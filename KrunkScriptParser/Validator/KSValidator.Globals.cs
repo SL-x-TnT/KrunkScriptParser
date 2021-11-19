@@ -27,7 +27,7 @@ namespace KrunkScriptParser.Validator
             //Read file + parse file
             try
             {
-                string text = File.ReadAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "globalObjects.krnk"));
+                string text = File.ReadAllText(_globalFile.FullName);
 
                 ParseGlobalObjects(text);
             }
@@ -86,6 +86,8 @@ namespace KrunkScriptParser.Validator
                 //Action
                 if (_token.Value == "(")
                 {
+                    TokenLocation location = new TokenLocation(_token.Prev);
+
                     _iterator.Next();
 
                     List<KSParameter> parameters = ParseParameters(true);
@@ -97,7 +99,8 @@ namespace KrunkScriptParser.Validator
                         Name = name,
                         Global = true,
                         CallInformation = new CallInfo { Global = true },
-                        Documentation = documentation
+                        Documentation = documentation,
+                        TokenLocation = location
                     };
 
                     UpdateGlobalDeclaration(action);
@@ -111,7 +114,9 @@ namespace KrunkScriptParser.Validator
                     {
                         Name = name,
                         Type = returnType,
-                        Documentation = documentation
+                        Documentation = documentation,
+                        TokenLocation = new TokenLocation(_token),
+                        Global = true
                     };
 
                     UpdateGlobalDeclaration(variable);

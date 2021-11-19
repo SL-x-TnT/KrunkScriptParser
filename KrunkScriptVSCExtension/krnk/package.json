@@ -2,7 +2,7 @@
   "name": "krunkscript-validator",
   "displayName": "KrunkScript Validator",
   "description": "Validation and autocomplete support for Krunker's 'KrunkScript' scripting language.",
-  "version": "0.2.8",
+  "version": "0.3.0",
   "icon": "images/icon.png",
   "publisher": "SLxTnT",
   "repository": {
@@ -44,11 +44,11 @@
   "devDependencies": {
     "@types/node": "14.x",
     "@types/vscode": "^1.61.0",
-    "eslint": "^8.1.0"
+    "eslint": "^8.1.0",
+    "tsc": "^2.0.3",
+    "typescript": "^4.5.2"
   },
   "dependencies": {
-    "tsc": "^2.0.3",
-    "typescript": "^4.4.4",
     "vscode-jsonrpc": "^6.0.0",
     "vscode-languageclient": "^7.0.0"
   }
