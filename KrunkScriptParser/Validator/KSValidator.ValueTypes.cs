@@ -82,6 +82,12 @@ namespace KrunkScriptParser.Validator
                     TokenLocation = variable?.TokenLocation
                 };
 
+                //Happens when using an action in a method
+                if(variableName.Variable?.Value is KSAction)
+                {
+                    variableName.Type = KSType.Action;
+                }
+
                 Token nextToken = _iterator.PeekNext();
 
                 if (nextToken.Value == "[")
