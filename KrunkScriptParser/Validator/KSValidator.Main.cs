@@ -932,7 +932,6 @@ namespace KrunkScriptParser.Validator
                 Previous = _token ?? Previous;
                 _token = _token?.Next;
 
-
                 if (checkEOF && _token == null)
                 {
                     throw new ValidationException("Unexpected end of file", new TokenLocation(Previous), new TokenLocation(Previous));
@@ -940,7 +939,7 @@ namespace KrunkScriptParser.Validator
 
                 if (_token?.Type == TokenTypes.Comment)
                 {
-                    return Next();
+                    return Next(false);
                 }
 
                 return _token;
