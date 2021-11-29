@@ -16,7 +16,7 @@ namespace KrunkScriptParser.Validator
     {
         private enum ValidatorPass { Declarations, Final };
 
-        public List<ValidationException> ValidationExceptions { get; private set; } = new List<ValidationException>();
+        public HashSet<ValidationException> ValidationExceptions { get; private set; } = new HashSet<ValidationException>();
 
         private LinkedList<Dictionary<string, IKSValue>> _declarations = new LinkedList<Dictionary<string, IKSValue>>();
         private LinkedListNode<Dictionary<string, IKSValue>> _declarationNode;
@@ -809,9 +809,10 @@ namespace KrunkScriptParser.Validator
         {
             if (_pass == pass)
             {
-                ValidationExceptions.Add(ex);
-
-                OnValidationError?.Invoke(this, ex);
+                if (ValidationExceptions.Add(ex))
+                {
+                    OnValidationError?.Invoke(this, ex);
+                }
             }
         }
 

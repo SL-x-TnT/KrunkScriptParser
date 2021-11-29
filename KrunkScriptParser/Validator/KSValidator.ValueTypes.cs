@@ -217,7 +217,7 @@ namespace KrunkScriptParser.Validator
                 AddValidationException($"Missing end of indexer ']'", _token);
             }
 
-            if(value.Type != KSType.Number && wasDeclared)
+            if(value.Type != KSType.Number && (wasDeclared || (value is KSExpression ksExpression && ksExpression.Items.Count == 1)))
             {
                 AddValidationException($"Array indexer expects type '{KSType.Number}'. Received '{value.Type}'", value.TokenLocation);
             }

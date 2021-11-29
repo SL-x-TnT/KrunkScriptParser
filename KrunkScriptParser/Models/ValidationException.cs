@@ -37,6 +37,21 @@ namespace KrunkScriptParser.Models
             Level = level;
         }
 
+        public override bool Equals(object obj)
+        {
+            if(obj is ValidationException validationException)
+            {
+                return validationException.LineStart == LineStart && validationException.ColumnStart == ColumnStart;
+            }
+
+            return base.Equals(obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return unchecked(LineStart.GetHashCode() * 7 + ColumnStart.GetHashCode() * 13);
+        }
+
         public override string ToString()
         {
             return $"[{Level}] ({LineStart}:{ColumnStart}) {Message}";
