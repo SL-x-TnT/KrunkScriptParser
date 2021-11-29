@@ -179,7 +179,7 @@ namespace KrunkScriptParser.Validator
 
             Token currentToken = _token;
 
-            while (TryReadIndexer(out IKSValue v, ref isDeclared))
+            while (TryReadIndexer(out IKSValue v, ref isDeclared, true))
             {
                 type.IncreaseDepth();
 

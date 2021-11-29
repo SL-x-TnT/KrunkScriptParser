@@ -188,7 +188,7 @@ namespace KrunkScriptParser.Validator
             }
         }
 
-        private bool TryReadIndexer(out IKSValue value, ref bool isDeclared)
+        private bool TryReadIndexer(out IKSValue value, ref bool isDeclared, bool ignoreType = false)
         {
             value = null;
 
@@ -217,9 +217,11 @@ namespace KrunkScriptParser.Validator
                 AddValidationException($"Missing end of indexer ']'", _token);
             }
 
-            if(value.Type != KSType.Number && (wasDeclared || (value is KSExpression ksExpression && ksExpression.Items.Count == 1)))
+            KSExpression expression = value as KSExpression;
+
+            if(!ignoreType && value.Type != KSType.Number && (wasDeclared || (expression.Items.Count == 1)))
             {
-                AddValidationException($"Array indexer expects type '{KSType.Number}'. Received '{value.Type}'", value.TokenLocation);
+                AddValidationException($"Array indexer expects type '{KSType.Number}'. Received '{value.Type}'", expression.TokenLocation, expression.EndTokenLocation);
             }
 
             if(_iterator.PeekNext().Value == "[")
