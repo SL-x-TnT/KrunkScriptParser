@@ -37,6 +37,11 @@ namespace KrunkScriptLanguageServer
                 ++length;
             }
 
+            if(startPosition < 0 || startPosition + length >= Buffer.Length)
+            {
+                return String.Empty;
+            }
+
             return Buffer.Substring(startPosition, length);
         }
 
@@ -45,6 +50,11 @@ namespace KrunkScriptLanguageServer
             int cursorPosition = GetPosition(line, position);
 
             int startPosition = cursorPosition;
+
+            if(startPosition < 0 || startPosition >= Buffer.Length)
+            {
+                return String.Empty;
+            }
 
             for(int i = cursorPosition - 1; i >= 0; --i)
             {
