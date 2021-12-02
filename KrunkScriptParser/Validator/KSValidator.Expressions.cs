@@ -349,6 +349,11 @@ namespace KrunkScriptParser.Validator
                         {
                             AddValidationException($"notEmpty expects an '{KSType.Object}' or '{KSType.Any}'. Received '{node.Value.Type}'", forceConversion.TokenLocation, forceConversion.EndTokenLocation);
                         }
+                        else if (forceConversion.IsConvert)
+                        {
+                            //Add in valid types
+                            AddValidationException($"Invalid convert from '{node.Value.Type}' to '{forceConversion.ReturnType.FullType}'", forceConversion.TokenLocation, forceConversion.EndTokenLocation);
+                        }
                         else
                         {
                             AddValidationException($"Invalid cast from '{node.Value.Type}' to '{forceConversion.ReturnType.FullType}'", forceConversion.TokenLocation, forceConversion.EndTokenLocation);
