@@ -157,6 +157,13 @@ namespace KrunkScriptParser.Validator
                         bool hasVariable = false;
                         bool showedError = false;
 
+                        if(insideGroup)
+                        {
+                            AddValidationException($"Invalid group around operator '{op.Operator}'", expression.Items.First().TokenLocation, expression.Items.Last().EndTokenLocation ?? expression.Items.Last().TokenLocation);
+
+                            showedError = true;
+                        }
+
                         foreach (ExpressionItem item in expression.Items)
                         {
                             if (item is ExpressionValue v)

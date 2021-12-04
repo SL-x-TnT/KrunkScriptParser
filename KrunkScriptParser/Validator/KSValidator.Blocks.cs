@@ -229,11 +229,17 @@ namespace KrunkScriptParser.Validator
                         isValid = true;
                     }
 
-                    if(expression.Items.Count == 2 && expression.Items[1] is ExpressionOperator op && op.IsPostfix)
+                    if (expression.Items.LastOrDefault() is ExpressionOperator op && op.IsPostfix)
                     {
-                        isValid = true;
+                        if (expression.Items.Count == 2)
+                        {
+                            isValid = true;
+                        }
+                        else if (expression.Items.Count == 3 && expression.Items.First() is ForceConversion conversion && conversion.Type == KSType.Number)
+                        {
+                            isValid = true;
+                        }
                     }
-
 
                     if (!isValid)
                     {
