@@ -252,14 +252,15 @@ namespace KrunkScriptParser.Validator
             {
                 if (_token.Type == TokenTypes.Terminator)
                 {
-                    AddValidationException($"{variable.Name} must have a value", _token);
-
-                    _iterator.SkipLine();
+                    AddValidationException($"Variable declaration '{variable.Name}' must have a value", variable.TokenLocation);
+                }
+                else
+                {
+                    AddValidationException($"Expected '='. Found: {_token.Value}", _token);
                 }
 
-                AddValidationException($"Expected '='. Found: {_token.Value}", _token);
-
-                _iterator.SkipLine();
+                _iterator.SkipUntil(TokenTypes.Terminator);
+                _iterator.Next();
 
                 return variable;
             }
