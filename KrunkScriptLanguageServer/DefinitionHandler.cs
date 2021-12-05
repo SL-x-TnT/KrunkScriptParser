@@ -58,7 +58,7 @@ namespace KrunkScriptLanguageServer
             DefinitionLocation location = suggestion?.Location;
 
             //No definition
-            if(suggestion?.Location == null)
+            if(suggestion?.Location == null || location.StartLocation == null || location.EndLocation == null)
             {
                 return null;
             }
