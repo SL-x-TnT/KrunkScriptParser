@@ -588,7 +588,7 @@ namespace KrunkScriptParser.Validator
 
                 if (!action.IsHook && _hookDeclared && _pass == ValidatorPass.Declarations)
                 {
-                    AddValidationException($"Action {name} is declared after a hook (public) action. Place before all hooks to prevent issues", variable.TokenLocation, level: Level.Warning, pass: _pass);
+                    AddValidationException($"Action '{name}' is declared after a hook (public) action. Place before all hooks to prevent issues", variable.TokenLocation, level: Level.Warning, pass: _pass);
                 }
             }
             else if(variable is KSVariable v)
@@ -603,7 +603,7 @@ namespace KrunkScriptParser.Validator
 
                 if (_hookDeclared && _pass == ValidatorPass.Declarations)
                 {
-                    AddValidationException($"Variable {name} is declared after a hook (public) action. Place before all hooks to prevent issues", variable.TokenLocation, level: Level.Warning, pass: _pass);
+                    AddValidationException($"Variable '{name}' is declared after a hook (public) action. Place before all hooks to prevent issues", variable.TokenLocation, level: Level.Warning, pass: _pass);
                 }
             }
             else if (variable is KSParameter parameter)
