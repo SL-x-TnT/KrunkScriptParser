@@ -229,7 +229,12 @@ namespace KrunkScriptParser.Validator
             }
 
             //Determine the type
-            expression.Type = DetermineExpressionType(expression.Items);
+            expression.Type = DetermineExpressionType(expression.Items) ?? KSType.Unknown;
+
+            if(expression.Items.Count == 0 || (expression.HasAssignment && expression.Items.Count == 2))
+            {
+                AddValidationException($"Empty expression found for assignment", _token.Prev, _token);
+            }
 
             return expression;
 
