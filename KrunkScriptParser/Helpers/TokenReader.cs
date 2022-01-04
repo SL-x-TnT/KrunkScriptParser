@@ -70,7 +70,7 @@ namespace KrunkScriptParser.Helpers
                 token.Type = TokenTypes.Number;
                 token.Value = ReadNumber();
             }
-            else if(char.IsLetter(c))
+            else if(char.IsLetter(c) || c == '_')
             {
                 string name = ReadName();
                 token.Type = GetTokenType(name);

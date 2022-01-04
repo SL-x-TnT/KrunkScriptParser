@@ -15,7 +15,7 @@ namespace KrunkScriptParser.Models.Tokens
         {
             Line = token?.Line ?? 0;
             Column = token?.Column ?? 0;
-            TokenLength = token?.Value.Length ?? 0;
+            TokenLength = token?.Value?.Length ?? 0;
         }
     }
 }
