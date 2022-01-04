@@ -2,7 +2,7 @@
   "name": "krunkscript-validator",
   "displayName": "KrunkScript Validator",
   "description": "Validation and autocomplete support for Krunker's 'KrunkScript' scripting language.",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "icon": "images/icon.png",
   "publisher": "SLxTnT",
   "repository": {
