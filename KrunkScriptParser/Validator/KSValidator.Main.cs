@@ -566,7 +566,7 @@ namespace KrunkScriptParser.Validator
         {
             while (_iterator.Current?.Type == TokenTypes.Comment)
             {
-                _iterator.Next();
+                _iterator.Next(false);
             }
         }
 
