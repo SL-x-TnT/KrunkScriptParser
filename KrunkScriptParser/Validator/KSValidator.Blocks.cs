@@ -194,7 +194,7 @@ namespace KrunkScriptParser.Validator
                     }
                 }
             }
-            else if (_token.Type == TokenTypes.Type)
+            else if (_token.Type == TokenTypes.Type || _token.Value == "static")
             {
                 //Handles terminator itself
                 returnValue = ParseVariableDeclaration();

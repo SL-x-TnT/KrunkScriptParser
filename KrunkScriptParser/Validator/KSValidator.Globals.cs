@@ -68,7 +68,7 @@ namespace KrunkScriptParser.Validator
 
                 while ((_token.Type != TokenTypes.Type && _token.Value != "("))
                 {
-                    if (!String.IsNullOrEmpty(name) && _token.Type == TokenTypes.GlobalObject && globalFinished)
+                    if (!String.IsNullOrEmpty(name) && (_token.Type == TokenTypes.GlobalObject) && globalFinished)
                     {
                         break;
                     }
@@ -144,20 +144,24 @@ namespace KrunkScriptParser.Validator
 
             KSObject AddObjectPathName(string[] parts, bool isAction = false)
             {
+                string name = String.Join(".", parts);
+
                 KSObject ksObject = new KSObject();
+                ksObject.Type = new KSType { Name = "obj", IsStatic = true };
 
                 //First value
                 if (!_defaultDeclarations.TryGetValue(parts[0], out IKSValue declaredValue))
                 {
                     declaredValue = new KSVariable
                     {
-                        Type = KSType.Object,
+                        Type = new KSType { Name = "obj", IsStatic = true },
                         Value = ksObject,
                         Name = parts[0],
-                        CallInformation = new CallInfo { Global = true }
+                        CallInformation = new CallInfo { Global = true },
                     };
 
                     _defaultDeclarations.TryAdd(parts[0], declaredValue);
+                    _krunkerGlobalVariables.TryAdd(parts[0], ksObject);
                 }
 
                 ksObject = ((KSVariable)declaredValue).Value as KSObject;
@@ -169,7 +173,8 @@ namespace KrunkScriptParser.Validator
                     {
                         KSObject newObj = new KSObject
                         {
-                            Type = KSType.Object
+                            Type = new KSType { Name = "obj", IsStatic = true },
+
                         };
 
                         ksObject.Properties.TryAdd(parts[i], newObj);
@@ -180,34 +185,46 @@ namespace KrunkScriptParser.Validator
                         ksObject = v as KSObject;
                     }
 
+                    string partialName = String.Join(".", parts.Take(i + 1));
+                    _krunkerGlobalVariables.TryAdd(partialName, ksObject);
                 }
 
-                if (isAction && parts.Length > 1)
-                {
-                    string lastPart = parts[parts.Length - 1];
 
-                    KSObject lastObject = null;
-                    if(!ksObject.Properties.TryGetValue(lastPart, out IKSValue v))
+                try
+                {
+                    if (isAction && parts.Length > 1)
                     {
-                        v = new KSObject
+                        string lastPart = parts[parts.Length - 1];
+
+                        KSObject lastObject = null;
+                        if (!ksObject.Properties.TryGetValue(lastPart, out IKSValue v))
                         {
-                            Type = KSType.Object
-                        };
+                            v = new KSObject
+                            {
+                                Type = new KSType { Name = "obj", IsStatic = true },
+                            };
 
-                        ksObject.Properties.TryAdd(lastPart, v);
+                            ksObject.Properties.TryAdd(lastPart, v);
+                        }
+
+                        lastObject = v as KSObject;
+
+                        return lastObject;
                     }
-
-                    lastObject = v as KSObject;
-
-                    return lastObject;
-                }
-                else if(!isAction)
-                {
-                    ksObject.Properties.TryAdd(parts[parts.Length - 1], new KSVariable
+                    else if (!isAction)
                     {
-                        Type = value.Type,
-                        CallInformation = new CallInfo { Global = true }
-                    });
+                        ksObject.Properties.TryAdd(parts[parts.Length - 1], new KSVariable
+                        {
+                            Type = value.Type,
+                            CallInformation = new CallInfo { Global = true }
+                        });
+                    }
+                }
+                finally
+                {
+                    ksObject.Properties.TryGetValue(parts.Last(), out var variable);
+
+                    _krunkerGlobalVariables.TryAdd(name, variable);
                 }
 
                 return ksObject;

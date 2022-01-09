@@ -19,6 +19,25 @@ namespace KrunkScriptParser.Models.Blocks
         public new TokenLocation EndTokenLocation => Items.LastOrDefault()?.TokenLocation;
         public DocumentationInfo Documentation { get; set; }
 
+        public bool TryReadVariableName(out KSVariableName variable)
+        {
+            variable = null;
+
+            if (Items.Count != 1)
+            {
+                return false;
+            }
+
+            if (Items.FirstOrDefault() is ExpressionValue expressionValue && expressionValue.Value is KSVariableName obj)
+            {
+                variable = obj;
+
+                return true;
+            }
+
+            return false;
+        }
+
         public bool TryReadObject(out KSObject ksObject)
         {
             ksObject = null;

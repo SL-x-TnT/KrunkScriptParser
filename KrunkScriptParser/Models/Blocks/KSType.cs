@@ -14,6 +14,7 @@ namespace KrunkScriptParser.Models.Blocks
         public int ArrayDepth { get; private set; }
         public TokenLocation TokenLocation { get; set; }
         public TokenLocation EndTokenLocation { get; set; }
+        public bool IsStatic { get; set; }
 
         public string FullType
         {
@@ -47,6 +48,7 @@ namespace KrunkScriptParser.Models.Blocks
             {
                 Name = type.Name;
                 ArrayDepth = type.ArrayDepth;
+                IsStatic = type.IsStatic;
             }
         }
 

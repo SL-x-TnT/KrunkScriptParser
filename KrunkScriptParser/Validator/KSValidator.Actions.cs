@@ -148,6 +148,7 @@ namespace KrunkScriptParser.Validator
                 )
             {
                 KSType type = null;
+                bool isStatic = false;
 
                 //Skip modifier, if there's one
                 if(_token.Type == TokenTypes.Modifier)
@@ -157,6 +158,7 @@ namespace KrunkScriptParser.Validator
                         AddValidationException($"Expected a type. Received modifier {_token.Value}", _token);
                     }
 
+                    isStatic = true;
                     _iterator.Next();
                 }
 
@@ -177,6 +179,8 @@ namespace KrunkScriptParser.Validator
                 {
                     type = ParseType();
                 }
+
+                type.IsStatic = isStatic;
 
                 bool optional = false;
 

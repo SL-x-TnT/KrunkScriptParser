@@ -7,7 +7,7 @@
 
   <ItemGroup>
     <None Update="globalObjects.krnk">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 

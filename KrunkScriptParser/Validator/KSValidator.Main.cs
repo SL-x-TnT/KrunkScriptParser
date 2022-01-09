@@ -161,6 +161,14 @@ namespace KrunkScriptParser.Validator
         /// </summary>
         private KSType ParseType()
         {
+            bool isStatic = false;
+
+            if(_token.Value == "static" && _iterator.PeekNext().Value == "obj")
+            {
+                isStatic = true;
+                _iterator.Next();
+            }
+
             if(_token.Type != TokenTypes.Type)
             {
                 AddValidationException($"Expected a type. Received '{_token.Value}'", _token, willThrow: true);
@@ -169,7 +177,8 @@ namespace KrunkScriptParser.Validator
             KSType type = new KSType
             {
                 Name = _token.Value,
-                TokenLocation = new TokenLocation(_token)
+                TokenLocation = new TokenLocation(_token),
+                IsStatic = isStatic
             };
 
             _iterator.Next();
@@ -270,11 +279,30 @@ namespace KrunkScriptParser.Validator
             //Expecting a value
             KSExpression expression = ParseExpression();
 
-            variable.Value = expression;
+            if (expression.TryReadVariableName(out KSVariableName variableName))
+            {
+                variable.Value = variableName.Object;
+            }
+            else
+            {
+                variable.Value = expression;
+            }
 
             if (variable.Type.FullType != expression.Type.FullType)
             {
                 AddValidationException($"Variable '{variable.Name}' expected type '{variable.Type.FullType}'. Received '{expression.Type.FullType}'", expression.TokenLocation, _token);
+            }
+
+            if(variable.Type.IsStatic != expression.Type.IsStatic)
+            {
+                if (!variable.Type.IsStatic)
+                {
+                    AddValidationException($"Cannot assign a static object to a dynamic object", expression.TokenLocation, _token);
+                }
+                else
+                {
+                    AddValidationException($"Cannot assign a dynamic object to a static object", expression.TokenLocation, _token);
+                }
             }
 
             if(expression.HasPostfix)
@@ -354,7 +382,7 @@ namespace KrunkScriptParser.Validator
             KSBlock block = null;
 
             //Get block
-            for (int i = _completionBlocks.Count - 2; i >= 0; i--)
+            for (int i = _completionBlocks.Count - 1; i >= 0; i--)
             {
                 block = _completionBlocks[i];
 

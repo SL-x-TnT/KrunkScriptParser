@@ -79,6 +79,7 @@ namespace KrunkScriptParser.Validator
                     Type = new KSType(variable?.Type),
                     Variable = variable as KSVariable,
                     Action = variable as KSAction,
+                    Object = variable as KSObject,
                     TokenLocation = variable?.TokenLocation
                 };
 
@@ -502,6 +503,29 @@ namespace KrunkScriptParser.Validator
                     {
                         return null;
                     }
+
+                    //For now, this is for static variable assignment
+                    if(value is KSVariable ksVariable)
+                    {
+                        ksVariable.TryReadObject(out KSObject ksObject);
+
+                        string[] nameParts = name.Split('.').Skip(1).ToArray();
+
+                        foreach(string namePart in nameParts)
+                        {
+                            ksObject.Properties.TryGetValue(namePart, out IKSValue v);
+
+
+                            ksObject = v as KSObject;
+                            variable = v;
+                        }
+
+                        if(variable is KSAction ksAction)
+                        {
+                            return ksAction;
+                        }
+                    }
+
                 }
                 else if (isObj)
                 {
@@ -593,6 +617,10 @@ namespace KrunkScriptParser.Validator
                 if (v is KSVariable globalVariable)
                 {
                     variable = globalVariable;
+                }
+                else if (v is KSObject ksObject)
+                {
+                    return ksObject;
                 }
                 else if (v is KSAction ksAction)
                 {
