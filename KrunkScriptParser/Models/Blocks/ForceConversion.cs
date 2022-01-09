@@ -49,7 +49,7 @@ namespace KrunkScriptParser.Models.Blocks
             else if(IsConvert)
             {
                 //Converts don't work on arrays
-                return !otherType.IsArray && otherType == KSType.Any || otherType == KSType.Bool || otherType == KSType.Number || otherType == KSType.String;
+                return !otherType.IsArray && otherType == KSType.Any || otherType == KSType.Bool || otherType == KSType.Number || otherType == KSType.String || otherType == KSType.Object;
             }
 
             if (!IsConvert && otherType != KSType.Any) //Was a cast, verify there's no type changes

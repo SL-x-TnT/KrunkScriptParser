@@ -507,17 +507,19 @@ namespace KrunkScriptParser.Validator
                     //For now, this is for static variable assignment
                     if(value is KSVariable ksVariable)
                     {
-                        ksVariable.TryReadObject(out KSObject ksObject);
-
-                        string[] nameParts = name.Split('.').Skip(1).ToArray();
-
-                        foreach(string namePart in nameParts)
+                        if (ksVariable.TryReadObject(out KSObject ksObject))
                         {
-                            ksObject.Properties.TryGetValue(namePart, out IKSValue v);
+
+                            string[] nameParts = name.Split('.').Skip(1).ToArray();
+
+                            foreach (string namePart in nameParts)
+                            {
+                                ksObject.Properties.TryGetValue(namePart, out IKSValue v);
 
 
-                            ksObject = v as KSObject;
-                            variable = v;
+                                ksObject = v as KSObject;
+                                variable = v;
+                            }
                         }
 
                         if(variable is KSAction ksAction)
