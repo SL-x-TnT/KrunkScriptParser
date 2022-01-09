@@ -107,7 +107,7 @@ namespace KrunkScriptParser.Validator
 
                 bool hasType = false;
 
-                if (_token.Type == TokenTypes.Type)
+                if (_token.Type == TokenTypes.Type || (_token.Value == "static" && _token.Next.Type == TokenTypes.Type))
                 {
                     //Parse type to see next token
                     ParseType();
