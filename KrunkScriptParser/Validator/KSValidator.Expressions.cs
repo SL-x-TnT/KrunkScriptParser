@@ -70,6 +70,15 @@ namespace KrunkScriptParser.Validator
                     });
 
                     _iterator.Next();
+
+                    // New group expression  -(1 + 2)
+                    if(_token.Value == "(")
+                    {
+                        expression.Items.Add(ParseExpression());
+
+                        continue;
+                    }
+
                     //Let the parse value handle any unexpected values
                 }
 
