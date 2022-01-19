@@ -38,6 +38,7 @@ namespace KrunkScriptParser.Validator
         private TokenReader _reader;
         private ValidatorPass _pass = ValidatorPass.Declarations;
         private bool _hookDeclared = false;
+        private CommandInfo _commandInfo = new CommandInfo();
 
         //Used for auto complete
         internal List<KSBlock> _completionBlocks = new List<KSBlock>();
@@ -96,8 +97,9 @@ namespace KrunkScriptParser.Validator
 
         private void ParseTokens()
         {
-
             SkipComments();
+
+            _commandInfo = ParseCommands();
 
             while (_token != null)
             {
@@ -336,6 +338,49 @@ namespace KrunkScriptParser.Validator
             }
 
             return variable;
+        }
+
+        private CommandInfo ParseCommands()
+        {
+            CommandInfo info = new CommandInfo();
+
+            if (_token.Prev?.Type != TokenTypes.Comment)
+            {
+                return info;
+            }
+
+            Token prevToken = _token.Prev;
+
+            List<string> lines = new List<string>();
+
+            while (prevToken?.Type == TokenTypes.Comment && prevToken.Value.StartsWith("##"))
+            {
+                string[] parts = prevToken.Value.Substring(2).Split(":");
+
+                string command = parts.First().Trim();
+                string value = parts.Last().Trim();
+
+                switch (command)
+                {
+                    case "Level":
+                        if(Enum.TryParse<Level>(value, out var result))
+                        {
+                            info.Level = result;
+                        }
+                        else
+                        {
+                            AddValidationException($"Unknown value '{value}' for command '{command}'. Expected: '{String.Join(", ", Enum.GetValues(typeof(Level)).Cast<Level>())}'", prevToken, prevToken, Level.Warning);
+                        }
+
+                        break;
+                    default:
+                        AddValidationException($"Unknown command '{command}'", prevToken, prevToken, Level.Warning);
+                        break;
+                }
+                prevToken = prevToken.Prev;
+            }
+
+            return info;
         }
 
         private DocumentationInfo ParseDocumentationInfo()
@@ -836,7 +881,7 @@ namespace KrunkScriptParser.Validator
         /// </summary>
         private void AddValidationException(ValidationException ex, ValidatorPass pass = ValidatorPass.Final)
         {
-            if (_pass == pass)
+            if (_pass == pass && ex.Level <= _commandInfo.Level)
             {
                 if (ValidationExceptions.Add(ex))
                 {
