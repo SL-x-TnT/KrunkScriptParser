@@ -514,8 +514,10 @@ namespace KrunkScriptParser.Validator
 
                             foreach (string namePart in nameParts)
                             {
-                                ksObject.Properties.TryGetValue(namePart, out IKSValue v);
-
+                                if (!ksObject.Properties.TryGetValue(namePart, out IKSValue v))
+                                {
+                                    break;
+                                }
 
                                 ksObject = v as KSObject;
                                 variable = v;
