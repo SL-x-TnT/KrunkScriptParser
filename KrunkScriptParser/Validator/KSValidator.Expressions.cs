@@ -64,7 +64,7 @@ namespace KrunkScriptParser.Validator
                 else if (_token.Type == TokenTypes.Operator && _token.Value == "-")
                 {
                     //Treat it as a cast?
-                    expression.Items.Add(new ForceConversion(KSType.Number, false)
+                    expression.Items.Add(new ForceConversion(KSType.Number, false, isMinus: true)
                     {
                         TokenLocation = new TokenLocation(_token)
                     });
